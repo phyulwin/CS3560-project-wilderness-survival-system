@@ -1,0 +1,85 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36" version="28.2.8">
+  <diagram name="Trang-1" id="rgylKcPJizkptc4Bx8cM">
+    <mxGraphModel dx="1665" dy="777" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="oa8wwJ1GjYq6miga8_MO-3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="oa8wwJ1GjYq6miga8_MO-1" target="oa8wwJ1GjYq6miga8_MO-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="oa8wwJ1GjYq6miga8_MO-1" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;Player&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="79" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="oa8wwJ1GjYq6miga8_MO-2" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;Move Player&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="320" y="79" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="oa8wwJ1GjYq6miga8_MO-4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" source="oa8wwJ1GjYq6miga8_MO-5" target="oa8wwJ1GjYq6miga8_MO-6" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="oa8wwJ1GjYq6miga8_MO-5" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;Player&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="159" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="oa8wwJ1GjYq6miga8_MO-6" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;Rest&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="320" y="159" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="oa8wwJ1GjYq6miga8_MO-7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" source="oa8wwJ1GjYq6miga8_MO-8" target="oa8wwJ1GjYq6miga8_MO-9" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="oa8wwJ1GjYq6miga8_MO-8" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;Player&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="238" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="oa8wwJ1GjYq6miga8_MO-9" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;Player–Trader Interaction&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="320" y="238" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="oa8wwJ1GjYq6miga8_MO-10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" source="oa8wwJ1GjYq6miga8_MO-11" target="oa8wwJ1GjYq6miga8_MO-12" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="oa8wwJ1GjYq6miga8_MO-11" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;Player&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="319" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="oa8wwJ1GjYq6miga8_MO-12" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;Item Encounter&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="320" y="319" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="oa8wwJ1GjYq6miga8_MO-13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" source="oa8wwJ1GjYq6miga8_MO-14" target="oa8wwJ1GjYq6miga8_MO-15" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="oa8wwJ1GjYq6miga8_MO-14" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;Player&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="399" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="oa8wwJ1GjYq6miga8_MO-15" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;Vision&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="320" y="399" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="oa8wwJ1GjYq6miga8_MO-16" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" source="oa8wwJ1GjYq6miga8_MO-17" target="oa8wwJ1GjYq6miga8_MO-18" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="oa8wwJ1GjYq6miga8_MO-17" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;Brain&amp;nbsp;&amp;nbsp;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="479" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="oa8wwJ1GjYq6miga8_MO-18" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;Make Decision&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="320" y="479" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="oa8wwJ1GjYq6miga8_MO-19" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" source="oa8wwJ1GjYq6miga8_MO-20" target="oa8wwJ1GjYq6miga8_MO-21" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="oa8wwJ1GjYq6miga8_MO-20" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;System&amp;nbsp;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="559" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="oa8wwJ1GjYq6miga8_MO-21" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;connected to all use cases&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="320" y="559" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="oa8wwJ1GjYq6miga8_MO-22" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" source="oa8wwJ1GjYq6miga8_MO-23" target="oa8wwJ1GjYq6miga8_MO-24" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="oa8wwJ1GjYq6miga8_MO-23" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;Trader&amp;nbsp;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="639" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="oa8wwJ1GjYq6miga8_MO-24" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;Player–Trader Interaction&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="320" y="639" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="oa8wwJ1GjYq6miga8_MO-25" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;&lt;b&gt;Use Case Diagram&lt;/b&gt;&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="183" y="40" width="200" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
