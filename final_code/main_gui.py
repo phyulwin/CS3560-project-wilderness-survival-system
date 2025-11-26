@@ -14,7 +14,11 @@ class MainGUI(tk.Tk):
         self.geometry("1400x900") 
         self.configure(bg="#2c3e50")
         self.session = session
-        self.cell_size = 30 # Default, will be updated dynamically
+        
+        # Map display variables
+        self.cell_size = 30
+        self.offset_x = 0
+        self.offset_y = 0
         
         self.funny_sentences = [
             "You mistook a sleeping bear for a bean bag chair.",
@@ -35,22 +39,56 @@ class MainGUI(tk.Tk):
         main_frame = tk.Frame(self, bg="#34495e")
         main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
-        # --- CANVAS (The Map) ---
+        # --- CANVAS (Map) ---
         self.canvas = tk.Canvas(main_frame, bg="#ecf0f1")
         self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
-        # Bind the resize event to redraw the map when window size changes
+        # Bind events
         self.canvas.bind("<Configure>", self.on_resize)
+        self.canvas.bind("<Motion>", self.on_mouse_hover) 
         
         # --- SIDEBAR ---
         sidebar = tk.Frame(main_frame, width=250, bg="#34495e")
         sidebar.pack_propagate(False) 
         sidebar.pack(side=tk.RIGHT, fill=tk.Y, padx=(10, 0))
         
-        title_font = font.Font(family="Helvetica", size=14, weight="bold")
+        title_font = font.Font(family="Helvetica", size=12, weight="bold")
+        
+        # --- TILE INSPECTION ---
+        tk.Label(sidebar, text="TILE INSPECTION", font=title_font, fg="#f1c40f", bg="#34495e").pack(pady=(10, 5))
+        
+        # Tile Name Label
+        self.lbl_tile_name = tk.Label(sidebar, text="--", font=("Arial", 14, "bold"), fg="white", bg="#34495e")
+        self.lbl_tile_name.pack(pady=5)
+        
+        # Cost Bars Container
+        self.cost_bars = {}
+        # UPDATED LABELS: Strength (Red), Water (Blue), Food (Green)
+        bar_configs = [
+            ("Strength", "#e74c3c", 5), # Red
+            ("Water",    "#3498db", 5), # Blue
+            ("Food",     "#2ecc71", 5)  # Green
+        ]
+        
+        for res, color, max_val in bar_configs:
+            f = tk.Frame(sidebar, bg="#34495e")
+            f.pack(fill=tk.X, pady=2, padx=10)
+            
+            # Text Label
+            lbl = tk.Label(f, text=f"{res}: -", fg="white", bg="#34495e", width=10, anchor="w", font=("Arial", 9))
+            lbl.pack(side=tk.LEFT)
+            
+            # Visual Bar (Canvas)
+            cv = tk.Canvas(f, width=100, height=12, bg="#2c3e50", highlightthickness=0)
+            cv.pack(side=tk.LEFT, padx=5)
+            
+            self.cost_bars[res] = {"lbl": lbl, "canvas": cv, "color": color, "max": max_val}
+
+        # --- SEPARATOR ---
+        tk.Frame(sidebar, height=2, bg="#7f8c8d").pack(fill=tk.X, pady=15, padx=10)
         
         # --- GAME INFO ---
-        tk.Label(sidebar, text="GAME INFO", font=title_font, fg="#f1c40f", bg="#34495e").pack(pady=(10, 5))
+        tk.Label(sidebar, text="GAME INFO", font=title_font, fg="#f1c40f", bg="#34495e").pack(pady=(5, 5))
         self.info_vars = {}
         for k in ["Level", "Difficulty", "Size"]:
             frame = tk.Frame(sidebar, bg="#34495e")
@@ -59,8 +97,8 @@ class MainGUI(tk.Tk):
             self.info_vars[k] = tk.StringVar(value="--")
             tk.Label(frame, textvariable=self.info_vars[k], fg="#bdc3c7", bg="#34495e", anchor="e").pack(side=tk.RIGHT, padx=10)
 
-        # --- STATS ---
-        tk.Label(sidebar, text="STATS", font=title_font, fg="#f1c40f", bg="#34495e").pack(pady=(20, 5))
+        # --- PLAYER STATS ---
+        tk.Label(sidebar, text="PLAYER STATS", font=title_font, fg="#f1c40f", bg="#34495e").pack(pady=(20, 5))
         self.stats = {}
         for k in ["Strength", "Water", "Food", "Gold", "Lives"]:
             frame = tk.Frame(sidebar, bg="#34495e")
@@ -70,24 +108,76 @@ class MainGUI(tk.Tk):
             tk.Label(frame, textvariable=self.stats[k], fg="#bdc3c7", bg="#34495e", anchor="e").pack(side=tk.RIGHT, padx=10)
 
         # --- ACTIONS ---
-        tk.Label(sidebar, text="ACTIONS", font=title_font, fg="#f1c40f", bg="#34495e").pack(pady=(30, 10))
+        tk.Label(sidebar, text="ACTIONS", font=title_font, fg="#f1c40f", bg="#34495e").pack(pady=(20, 10))
         
         self.btn_next = tk.Button(sidebar, text="Next Turn", command=self.next_turn, state=tk.DISABLED, bg="#ecf0f1")
         self.btn_next.pack(fill=tk.X, padx=10, pady=5)
         
         tk.Button(sidebar, text="Reset Level 1", command=self.reset_game, bg="#e74c3c", fg="white").pack(fill=tk.X, padx=10, pady=5)
         
-        # --- AUTH BUTTONS FRAME ---
+        # Auth Frame
         self.auth_frame = tk.Frame(sidebar, bg="#34495e")
         self.auth_frame.pack(fill=tk.X, pady=10)
         self.update_auth_buttons(is_logged_in=False)
         
-        tk.Label(sidebar, text="LOG", font=title_font, fg="#f1c40f", bg="#34495e").pack(pady=(30, 5))
-        self.log_box = tk.Text(sidebar, height=20, state=tk.DISABLED, bg="#2c3e50", fg="white", font=("Courier", 8))
+        # Log
+        tk.Label(sidebar, text="LOG", font=title_font, fg="#f1c40f", bg="#34495e").pack(pady=(10, 5))
+        self.log_box = tk.Text(sidebar, height=15, state=tk.DISABLED, bg="#2c3e50", fg="white", font=("Courier", 8))
         self.log_box.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
+    # --- MOUSE HOVER LOGIC ---
+    def on_mouse_hover(self, event):
+        """Detects mouse over map and updates inspection panel."""
+        if not self.session.game_map or self.cell_size == 0: return
+        
+        # Calculate grid coordinates using the saved offsets
+        c = int((event.x - self.offset_x) // self.cell_size)
+        r = int((event.y - self.offset_y) // self.cell_size)
+        
+        # Get the square at that location
+        sq = self.session.game_map.get_square(r, c)
+        
+        if sq:
+            # 1. Update Name
+            t = sq.terrain
+            name = t.__class__.__name__ # e.g. "Mountain", "Plains"
+            self.lbl_tile_name.config(text=name, fg=t.color)
+            
+            # 2. Update Bars
+            # Note: Terrain 'movement_cost' affects Player 'Strength'
+            self.draw_bar("Strength", t.movement_cost)
+            self.draw_bar("Water", t.water_cost)
+            self.draw_bar("Food", t.food_cost)
+        else:
+            # Mouse is off-map
+            self.lbl_tile_name.config(text="--", fg="white")
+            self.clear_bars()
+
+    def draw_bar(self, res, val):
+        """Draws a colored rectangle representing cost."""
+        widgets = self.cost_bars[res]
+        max_val = widgets["max"]
+        
+        # Update text
+        widgets["lbl"].config(text=f"{res}: {val}")
+        
+        # Draw Bar
+        c = widgets["canvas"]
+        c.delete("all")
+        
+        width = 100 # Canvas width
+        # Calculate bar length (capped at max width)
+        fill_width = min((val / max_val) * width, width)
+        
+        c.create_rectangle(0, 0, fill_width, 12, fill=widgets["color"], width=0)
+
+    def clear_bars(self):
+        """Resets bars to empty state."""
+        for res in self.cost_bars:
+            self.cost_bars[res]["lbl"].config(text=f"{res}: -")
+            self.cost_bars[res]["canvas"].delete("all")
+
     def on_resize(self, event):
-        """Called when the window is resized."""
         self.draw_map()
 
     def update_auth_buttons(self, is_logged_in):
@@ -184,62 +274,46 @@ class MainGUI(tk.Tk):
         p = self.session.player
         if not m: return
         
-        # --- DYNAMIC RESIZING LOGIC ---
-        # Get current canvas dimensions (in pixels)
+        # --- DYNAMIC RESIZING & OFFSET CALCULATION ---
         canvas_w = self.canvas.winfo_width()
         canvas_h = self.canvas.winfo_height()
         
-        # Avoid divide by zero errors at startup
-        if canvas_w < 10 or canvas_h < 10: return 
-        if m.width == 0 or m.height == 0: return
+        if canvas_w < 10 or canvas_h < 10 or m.width == 0 or m.height == 0: return
 
-        # Calculate best square size to fit the window
         cell_w = canvas_w / m.width
         cell_h = canvas_h / m.height
-        
-        # Choose the smaller dimension to keep cells square and fitting in view
         self.cell_size = min(cell_w, cell_h)
         
-        # Calculate offset to center the map if it doesn't perfectly fill one dimension
-        offset_x = (canvas_w - (m.width * self.cell_size)) / 2
-        offset_y = (canvas_h - (m.height * self.cell_size)) / 2
+        self.offset_x = (canvas_w - (m.width * self.cell_size)) / 2
+        self.offset_y = (canvas_h - (m.height * self.cell_size)) / 2
         
-        # Dynamic Font Size based on cell size
         font_size = int(self.cell_size * 0.5)
-        if font_size < 8: font_size = 8 # Minimum readable size
+        if font_size < 8: font_size = 8
         dynamic_font = ("Arial", font_size, "bold")
         emoji_font = ("Segoe UI Emoji", int(self.cell_size * 0.6))
 
-        # Draw Terrain & Items
         for r in range(m.height):
             for c in range(m.width):
                 sq = m.squares[r][c]
-                
-                # Calculate coordinates
-                x1 = offset_x + (c * self.cell_size)
-                y1 = offset_y + (r * self.cell_size)
+                x1 = self.offset_x + (c * self.cell_size)
+                y1 = self.offset_y + (r * self.cell_size)
                 x2 = x1 + self.cell_size
                 y2 = y1 + self.cell_size
                 
                 self.canvas.create_rectangle(x1, y1, x2, y2, fill=sq.terrain.color, outline="")
                 if sq.items:
-                    # Center text
                     cx = x1 + (self.cell_size / 2)
                     cy = y1 + (self.cell_size / 2)
                     self.canvas.create_text(cx, cy, text=sq.items[0].symbol, font=dynamic_font)
         
-        # --- DRAW PLAYER (Ant) ---
-        px = offset_x + (p.col * self.cell_size)
-        py = offset_y + (p.row * self.cell_size)
-        
-        # Padding for player circle
+        # Draw Player (Ant)
+        px = self.offset_x + (p.col * self.cell_size)
+        py = self.offset_y + (p.row * self.cell_size)
         pad = self.cell_size * 0.1
         
         self.canvas.create_oval(px+pad, py+pad, px+self.cell_size-pad, py+self.cell_size-pad, 
                                 fill="#2ecc71", outline="#27ae60", width=2)
-        
-        self.canvas.create_text(px+(self.cell_size/2), py+(self.cell_size/2), 
-                                text="🐜", font=emoji_font)
+        self.canvas.create_text(px+(self.cell_size/2), py+(self.cell_size/2), text="🐜", font=emoji_font)
 
     def update_ui(self):
         p = self.session.player
@@ -318,6 +392,8 @@ class MainGUI(tk.Tk):
 
         for v in self.stats.values(): v.set("--")
         for v in self.info_vars.values(): v.set("--")
+        self.lbl_tile_name.config(text="--")
+        self.clear_bars()
         
         self.log("Logged out.")
         self.update_auth_buttons(is_logged_in=False)
