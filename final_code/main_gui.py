@@ -14,7 +14,7 @@ class MainGUI(tk.Tk):
         self.geometry("1400x900") 
         self.configure(bg="#2c3e50")
         self.session = session
-        self.cell_size = 30
+        self.cell_size = 30 # Default, will be updated dynamically
         
         self.funny_sentences = [
             "You mistook a sleeping bear for a bean bag chair.",
@@ -35,10 +35,15 @@ class MainGUI(tk.Tk):
         main_frame = tk.Frame(self, bg="#34495e")
         main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
+        # --- CANVAS (The Map) ---
         self.canvas = tk.Canvas(main_frame, bg="#ecf0f1")
         self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
-        sidebar = tk.Frame(main_frame, width=200, bg="#34495e")
+        # Bind the resize event to redraw the map when window size changes
+        self.canvas.bind("<Configure>", self.on_resize)
+        
+        # --- SIDEBAR ---
+        sidebar = tk.Frame(main_frame, width=250, bg="#34495e")
         sidebar.pack_propagate(False) 
         sidebar.pack(side=tk.RIGHT, fill=tk.Y, padx=(10, 0))
         
@@ -81,9 +86,11 @@ class MainGUI(tk.Tk):
         self.log_box = tk.Text(sidebar, height=20, state=tk.DISABLED, bg="#2c3e50", fg="white", font=("Courier", 8))
         self.log_box.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
+    def on_resize(self, event):
+        """Called when the window is resized."""
+        self.draw_map()
+
     def update_auth_buttons(self, is_logged_in):
-        """Swaps between Login/Create buttons and Logout button."""
-        # Clear current buttons
         for widget in self.auth_frame.winfo_children():
             widget.destroy()
 
@@ -177,19 +184,62 @@ class MainGUI(tk.Tk):
         p = self.session.player
         if not m: return
         
+        # --- DYNAMIC RESIZING LOGIC ---
+        # Get current canvas dimensions (in pixels)
+        canvas_w = self.canvas.winfo_width()
+        canvas_h = self.canvas.winfo_height()
+        
+        # Avoid divide by zero errors at startup
+        if canvas_w < 10 or canvas_h < 10: return 
+        if m.width == 0 or m.height == 0: return
+
+        # Calculate best square size to fit the window
+        cell_w = canvas_w / m.width
+        cell_h = canvas_h / m.height
+        
+        # Choose the smaller dimension to keep cells square and fitting in view
+        self.cell_size = min(cell_w, cell_h)
+        
+        # Calculate offset to center the map if it doesn't perfectly fill one dimension
+        offset_x = (canvas_w - (m.width * self.cell_size)) / 2
+        offset_y = (canvas_h - (m.height * self.cell_size)) / 2
+        
+        # Dynamic Font Size based on cell size
+        font_size = int(self.cell_size * 0.5)
+        if font_size < 8: font_size = 8 # Minimum readable size
+        dynamic_font = ("Arial", font_size, "bold")
+        emoji_font = ("Segoe UI Emoji", int(self.cell_size * 0.6))
+
+        # Draw Terrain & Items
         for r in range(m.height):
             for c in range(m.width):
                 sq = m.squares[r][c]
-                x, y = c*self.cell_size, r*self.cell_size
-                self.canvas.create_rectangle(x, y, x+30, y+30, fill=sq.terrain.color, outline="")
+                
+                # Calculate coordinates
+                x1 = offset_x + (c * self.cell_size)
+                y1 = offset_y + (r * self.cell_size)
+                x2 = x1 + self.cell_size
+                y2 = y1 + self.cell_size
+                
+                self.canvas.create_rectangle(x1, y1, x2, y2, fill=sq.terrain.color, outline="")
                 if sq.items:
-                    self.canvas.create_text(x+15, y+15, text=sq.items[0].symbol, font=("Arial", 10, "bold"))
+                    # Center text
+                    cx = x1 + (self.cell_size / 2)
+                    cy = y1 + (self.cell_size / 2)
+                    self.canvas.create_text(cx, cy, text=sq.items[0].symbol, font=dynamic_font)
         
-        px, py = p.col*30, p.row*30
+        # --- DRAW PLAYER (Ant) ---
+        px = offset_x + (p.col * self.cell_size)
+        py = offset_y + (p.row * self.cell_size)
         
-        # Ant 🐜
-        self.canvas.create_oval(px+2, py+2, px+28, py+28, fill="#2ecc71", outline="#27ae60", width=2)
-        self.canvas.create_text(px+15, py+15, text="🐜", font=("Segoe UI Emoji", 16))
+        # Padding for player circle
+        pad = self.cell_size * 0.1
+        
+        self.canvas.create_oval(px+pad, py+pad, px+self.cell_size-pad, py+self.cell_size-pad, 
+                                fill="#2ecc71", outline="#27ae60", width=2)
+        
+        self.canvas.create_text(px+(self.cell_size/2), py+(self.cell_size/2), 
+                                text="🐜", font=emoji_font)
 
     def update_ui(self):
         p = self.session.player
@@ -258,19 +308,14 @@ class MainGUI(tk.Tk):
             self.start_game_sequence(level_up=False, reset_lives=True)
 
     def logout(self):
-        """Logs out and resets UI to Login state."""
         self.session.logout()
         self.canvas.delete("all")
+        self.btn_next.config(state=tk.DISABLED)
         
-        # Clear the log box
         self.log_box.config(state=tk.NORMAL)
         self.log_box.delete('1.0', tk.END)
         self.log_box.config(state=tk.DISABLED)
 
-        # Disable buttons
-        self.btn_next.config(state=tk.DISABLED)
-        
-        # Clear stats
         for v in self.stats.values(): v.set("--")
         for v in self.info_vars.values(): v.set("--")
         
