@@ -1,7 +1,7 @@
 import random
 from terrain import Plains, Forest, Mountain, Desert, Swamp
 from items import FoodBonus, WaterBonus, GoldBonus
-from trader import Trader
+from trader import FriendlyTrader, GreedyTrader  # <--- CHANGED
 
 class Square:
     def __init__(self, terrain):
@@ -31,13 +31,14 @@ class Map:
                 self.squares[r][c] = Square(t())
                 
                 if random.random() < chance:
-                    item_type = random.choice([FoodBonus, WaterBonus, GoldBonus, Trader])
-                    if item_type == Trader and random.random() > .2: 
-                        continue
-                    
-                    is_rep = (item_type in [FoodBonus, WaterBonus] and random.random() < .2) or item_type == Trader
-                    
-                    if item_type in [GoldBonus, Trader]:
-                        self.squares[r][c].items.append(item_type())
+                    # <--- CHANGED: Logic to pick specific trader types
+                    roll = random.random()
+                    if roll < 0.3: item_obj = FoodBonus()
+                    elif roll < 0.6: item_obj = WaterBonus()
+                    elif roll < 0.8: item_obj = GoldBonus()
                     else:
-                        self.squares[r][c].items.append(item_type(is_rep))
+                        # 50/50 Chance for Friendly or Greedy trader
+                        if random.random() < 0.5: item_obj = FriendlyTrader()
+                        else: item_obj = GreedyTrader()
+                    
+                    self.squares[r][c].items.append(item_obj)

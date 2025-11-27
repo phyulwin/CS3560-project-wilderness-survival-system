@@ -1,6 +1,7 @@
 from map_grid import Map
 from player import Player
-from vision import CautiousVision, KeenEyedVision, FarSightVision
+# <--- CHANGED: Import the new 4th Vision Type
+from vision import CautiousVision, KeenEyedVision, FarSightVision, EagleEyeVision
 from brain import ExplorerBrain, SurvivalistBrain, SmartBrain
 import random
 
@@ -50,15 +51,27 @@ class GameSession:
         }
 
     def restore_config(self, saved_cfg):
-        v_map = {"Cautious":CautiousVision, "Keen-Eyed":KeenEyedVision, "Far-Sight":FarSightVision}
+        # <--- CHANGED: Added EagleEye to map
+        v_map = {
+            "Cautious": CautiousVision, 
+            "Keen-Eyed": KeenEyedVision, 
+            "Far-Sight": FarSightVision,
+            "Eagle-Eye": EagleEyeVision
+        }
         b_map = {"Explorer":ExplorerBrain, "Survivalist":SurvivalistBrain, "Smart":SmartBrain}
         self.config = saved_cfg.copy()
         self.config["vis_cls"] = v_map.get(saved_cfg["vis_name"], CautiousVision)
         self.config["brain_cls"] = b_map.get(saved_cfg["brain_name"], ExplorerBrain)
 
     def set_config(self, diff, v_name, b_name, w, h):
-        v_map = {"Cautious":CautiousVision,"Keen-Eyed":KeenEyedVision,"Far-Sight":FarSightVision}
-        b_map = {"Explorer":ExplorerBrain,"Survivalist":SurvivalistBrain,"Smart":SmartBrain}
+        # <--- CHANGED: Added EagleEye to map
+        v_map = {
+            "Cautious": CautiousVision, 
+            "Keen-Eyed": KeenEyedVision, 
+            "Far-Sight": FarSightVision,
+            "Eagle-Eye": EagleEyeVision
+        }
+        b_map = {"Explorer":ExplorerBrain, "Survivalist":SurvivalistBrain, "Smart":SmartBrain}
         self.config = {
             "difficulty": diff,
             "vis_cls": v_map[v_name],
@@ -86,7 +99,6 @@ class GameSession:
         self.player.row = random.randint(0, h - 1)
 
     def advance_level_progress(self):
-        # FIX: Directly save without logging out
         self.user_data["level"] = self.user_data.get("level", 1) + 1
         self.user_data["saved_lives"] = self.lives
         if self.config:
