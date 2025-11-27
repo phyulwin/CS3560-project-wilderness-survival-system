@@ -3,11 +3,141 @@ from tkinter import messagebox, font, simpledialog
 import random
 import winsound
 import threading
-import math  # <--- NEW: Needed for rounding up
+import math
 from constants import Direction
 from ui_components import CustomDropdownDialog
 from ui_login import LoginDialog, CreateAccountDialog
+from trader import Trader
 
+# --- CLASS: Security Check Terminal ---
+class TraderTerminal(tk.Toplevel):
+    def __init__(self, parent, trader_name, real_user, real_level, cost, on_trade_success):
+        super().__init__(parent)
+        self.title(f"Security Check - {trader_name}")
+        self.geometry("600x480")
+        self.configure(bg="#ecf0f1")
+        self.resizable(False, False)
+        
+        # Lock interaction to this window
+        self.transient(parent)
+        self.grab_set()
+        self.focus_set()
+        
+        # Handle the "X" button same as "Leave"
+        self.protocol("WM_DELETE_WINDOW", self.destroy)
+        
+        self.real_user = real_user
+        self.real_level = real_level
+        self.cost = cost
+        self.on_trade_success = on_trade_success
+        
+        self.step = "USERNAME"
+        self.attempts = 3
+        
+        # UI Elements
+        tk.Label(self, text="SECURITY CHECKPOINT", fg="#c0392b", bg="#ecf0f1", 
+                 font=("Courier", 16, "bold")).pack(pady=(15, 0))
+        tk.Label(self, text=f"Connection: {trader_name}", fg="#2c3e50", bg="#ecf0f1", 
+                 font=("Courier", 12, "bold")).pack(pady=(0, 5))
+
+        self.log_box = tk.Text(self, height=14, width=65, state="disabled", 
+                               font=("Courier", 10), bg="#fdfefe", relief="sunken", bd=2)
+        self.log_box.pack(padx=10, pady=5)
+        
+        self.log_box.tag_config("sys", foreground="black", font=("Courier", 10, "bold"))
+        self.log_box.tag_config("err", foreground="#c0392b") 
+        self.log_box.tag_config("success", foreground="#27ae60") 
+        self.log_box.tag_config("user", foreground="#2980b9") 
+        self.log_box.tag_config("trader", foreground="#d35400") 
+
+        input_frame = tk.Frame(self, bg="#ecf0f1")
+        input_frame.pack(pady=10)
+        
+        tk.Label(input_frame, text="Input:", bg="#ecf0f1", font=("Arial", 10)).pack(side=tk.LEFT)
+        self.entry = tk.Entry(input_frame, width=35, font=("Courier", 10))
+        self.entry.pack(side=tk.LEFT, padx=5)
+        self.entry.bind("<Return>", lambda e: self.process_input()) 
+        
+        btn_submit = tk.Button(input_frame, text="Submit", command=self.process_input, 
+                               bg="#3498db", fg="white", font=("Arial", 9, "bold"))
+        btn_submit.pack(side=tk.LEFT)
+
+        btn_frame = tk.Frame(self, bg="#ecf0f1")
+        btn_frame.pack(pady=(5, 15))
+        
+        self.btn_trade = tk.Button(btn_frame, text="💰 Trade", state="disabled", 
+                                   bg="#f1c40f", fg="black", font=("Arial", 10, "bold"), 
+                                   width=15, command=self.do_trade)
+        self.btn_trade.pack(side=tk.LEFT, padx=10)
+        
+        # --- LEAVE BUTTON ---
+        # command=self.destroy ensures the window simply closes.
+        tk.Button(btn_frame, text="🔥 Leave", bg="#e74c3c", fg="white", 
+                  font=("Arial", 10, "bold"), width=12, command=self.destroy).pack(side=tk.LEFT, padx=10)
+
+        self.write_log("System: BIOMETRIC SCAN FAILED.", "sys")
+        self.write_log(f"Trader: Hold it! I can't verify your identity.", "trader")
+        self.write_log("Trader: Please enter your exact USERNAME to proceed.", "trader")
+        self.entry.focus_set()
+
+    def write_log(self, text, tag=None):
+        self.log_box.config(state="normal")
+        self.log_box.insert(tk.END, text + "\n", tag)
+        self.log_box.see(tk.END)
+        self.log_box.config(state="disabled")
+
+    def process_input(self):
+        val = self.entry.get().strip()
+        if not val: return
+        self.write_log(f"You: {val}", "user")
+        self.entry.delete(0, tk.END)
+
+        # --- LOGIC FOR USERNAME ---
+        if self.step == "USERNAME":
+            if val == self.real_user:
+                self.write_log("System: USERNAME MATCH CONFIRMED.", "success")
+                self.write_log("Trader: Okay, name matches. Now, what is your current LEVEL?", "trader")
+                self.step = "LEVEL"
+                self.attempts = 3 # Reset attempts
+            else:
+                self.attempts -= 1
+                if self.attempts > 0:
+                    self.write_log(f"System: ERROR. Username mismatch. {self.attempts} attempts left.", "err")
+                else:
+                    self.write_log("Trader: You're an imposter! Get out of here before I call the Guards!", "err")
+                    self.fail_security()
+
+        # --- LOGIC FOR LEVEL ---
+        elif self.step == "LEVEL":
+            try:
+                if int(val) == self.real_level:
+                    self.write_log("System: IDENTITY VERIFIED. ACCESS GRANTED.", "success")
+                    self.write_log(f"Trader: Verified. I offer supplies (+20 Food/Water).", "trader")
+                    self.write_log(f"Trader: My price is {self.cost} Gold.", "trader")
+                    
+                    self.btn_trade.config(state="normal", text=f"💰 Trade ({self.cost} G)")
+                    self.entry.config(state="disabled")
+                    self.step = "DONE"
+                else:
+                    raise ValueError
+            except ValueError:
+                self.attempts -= 1
+                if self.attempts > 0:
+                    self.write_log(f"System: ERROR. Level mismatch. {self.attempts} attempts left.", "err")
+                else:
+                    self.write_log("Trader: That's not the right clearance level! Go away!", "err")
+                    self.fail_security()
+
+    def fail_security(self):
+        self.entry.config(state="disabled")
+        self.btn_trade.config(state="disabled")
+
+    def do_trade(self):
+        self.btn_trade.config(state="disabled")
+        self.on_trade_success(self)
+
+
+# --- MAIN GUI CLASS ---
 class MainGUI(tk.Tk):
     def __init__(self, session):
         super().__init__()
@@ -159,24 +289,19 @@ class MainGUI(tk.Tk):
         c.create_rectangle(0, 0, fill, 8, fill=w["color"], width=0)
 
     def update_ui(self):
-        """Updates the Player Stats bars with rounded values."""
         p = self.session.player
         if not p: return
         
         def update_bar(key, current, maximum):
             w = self.player_bars[key]
-            
-            # Round UP for Display (e.g. 22.1 -> 23)
             curr_disp = math.ceil(current)
             max_disp = math.ceil(maximum) if isinstance(maximum, (int, float)) else maximum
             
-            # Update Text
             if isinstance(maximum, (int, float)):
                 w["var"].set(f"{curr_disp} / {max_disp}")
             else:
                 w["var"].set(f"{curr_disp}")
             
-            # Draw Bar
             c = w["canvas"]
             c.delete("all")
             canv_w = c.winfo_width()
@@ -230,11 +355,9 @@ class MainGUI(tk.Tk):
                     cy = y1 + (self.cell_size / 2)
                     self.canvas.create_text(cx, cy, text=sq.items[0].symbol, font=dynamic_font)
         
-        # Draw Player (Ant 🐜)
         px = self.offset_x + (p.col * self.cell_size)
         py = self.offset_y + (p.row * self.cell_size)
         pad = self.cell_size * 0.1
-        
         self.canvas.create_oval(px+pad, py+pad, px+self.cell_size-pad, py+self.cell_size-pad, 
                                 fill="#2ecc71", outline="#27ae60", width=2)
         self.canvas.create_text(px+(self.cell_size/2), py+(self.cell_size/2), text="🐜", font=emoji_font)
@@ -295,9 +418,10 @@ class MainGUI(tk.Tk):
             lvl = self.session.user_data.get("level", 1)
             msg = f"Resume Level {lvl} with previous setup?"
             if self.session.lives < 5: msg += f"\n(Lives remaining: {self.session.lives})"
+            
             if not messagebox.askyesno("Resume Game", msg):
-                self.session.config = None
-                self.session.lives = 5
+                self.session.reset_progress() # Force Reset if they say NO
+        
         elif self.session.lives <= 0:
             self.session.config = None
 
@@ -307,7 +431,7 @@ class MainGUI(tk.Tk):
             diff = CustomDropdownDialog(self, "Difficulty", f"Level {lvl} Difficulty:", ["Easy", "Medium", "Hard"]).result
             if not diff: self.logout(); return
             
-            vis = CustomDropdownDialog(self, "Vision", "Choose Vision:", ["Cautious", "Keen-Eyed", "Far-Sight"]).result
+            vis = CustomDropdownDialog(self, "Vision", "Choose Vision:", ["Cautious", "Keen-Eyed", "Far-Sight", "Eagle-Eye"]).result
             if not vis: self.logout(); return
             
             brain = CustomDropdownDialog(self, "Brain", "Choose Brain:", ["Explorer", "Survivalist", "Smart"]).result
@@ -341,6 +465,33 @@ class MainGUI(tk.Tk):
 
         sq = m.get_square(p.row, p.col)
         for item in list(sq.items):
+            if isinstance(item, Trader):
+                actual_user = self.session.current_user
+                actual_level = self.session.user_data.get("level", 1)
+
+                trade_cost = 10
+                if "Friendly" in item.name:
+                    trade_cost = 7
+                elif "Greedy" in item.name:
+                    trade_cost = 15
+
+                def trade_callback(terminal):
+                    if p.current_gold >= trade_cost:
+                        p.current_gold -= trade_cost
+                        p.current_food = min(p.max_food, p.current_food + 20)
+                        p.current_water = min(p.max_water, p.current_water + 20)
+                        terminal.write_log(f"System: Trade Successful! (-{trade_cost}G, +20F, +20W)", "success")
+                        self.log(f"Traded with {item.name}.")
+                        self.after(1500, terminal.destroy)
+                        if not item.is_repeating: sq.items.remove(item)
+                    else:
+                        terminal.write_log("System: TRANSACTION FAILED. INSUFFICIENT FUNDS.", "err")
+                        terminal.write_log("Trader: You don't have enough gold!", "err")
+                
+                term = TraderTerminal(self, item.name, actual_user, actual_level, trade_cost, trade_callback)
+                self.wait_window(term)
+                continue 
+
             item.on_collect(p, self.log)
             if not item.is_repeating: sq.items.remove(item)
 
@@ -398,3 +549,8 @@ class MainGUI(tk.Tk):
         self.clear_bars()
         self.log("Logged out.")
         self.update_auth_buttons(is_logged_in=False)
+        
+    def clear_bars(self):
+        for k in self.tile_bars:
+            self.tile_bars[k]["lbl"].config(text=f"{k}: -")
+            self.tile_bars[k]["canvas"].delete("all")

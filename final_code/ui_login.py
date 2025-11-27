@@ -2,54 +2,65 @@ import tkinter as tk
 from tkinter import messagebox
 
 class LoginDialog(tk.Toplevel):
-    def __init__(self, parent, auth_manager, on_success):
+    def __init__(self, parent, account_manager, on_success_callback):
         super().__init__(parent)
+        self.manager = account_manager
+        self.callback = on_success_callback
+        
         self.title("Login")
-        self.auth = auth_manager
-        self.on_success = on_success
-        self.geometry("300x160")
+        self.geometry("300x200")
+        self.configure(bg="#34495e")
         
-        tk.Label(self, text="Username").pack(pady=5)
-        self.u_entry = tk.Entry(self); self.u_entry.pack()
-        tk.Label(self, text="Password").pack(pady=5)
-        self.p_entry = tk.Entry(self, show="*"); self.p_entry.pack()
+        tk.Label(self, text="Username:", bg="#34495e", fg="white").pack(pady=5)
+        self.user_ent = tk.Entry(self)
+        self.user_ent.pack(pady=5)
         
-        # Login Button Only
-        tk.Button(self, text="Login", command=self.do_login, width=15, bg="#2ecc71").pack(pady=15)
+        tk.Label(self, text="Password:", bg="#34495e", fg="white").pack(pady=5)
+        self.pass_ent = tk.Entry(self, show="*")
+        self.pass_ent.pack(pady=5)
+        
+        tk.Button(self, text="Login", command=self.attempt_login, bg="#2ecc71").pack(pady=15)
 
-    def do_login(self):
-        u = self.u_entry.get(); p = self.p_entry.get()
-        data, msg = self.auth.load_account(u, p)
+    def attempt_login(self):
+        u = self.user_ent.get()
+        p = self.pass_ent.get()
+        data, msg = self.manager.load_account(u, p)
         if data:
+            messagebox.showinfo("Success", f"Welcome back, {u}!")
+            self.callback(u, data)
             self.destroy()
-            self.on_success(u, data)
         else:
             messagebox.showerror("Error", msg)
 
 class CreateAccountDialog(tk.Toplevel):
-    def __init__(self, parent, auth_manager):
+    def __init__(self, parent, account_manager):
         super().__init__(parent)
+        self.manager = account_manager
+        
         self.title("Create Account")
-        self.auth = auth_manager
-        self.geometry("300x160")
+        self.geometry("300x200")
+        self.configure(bg="#34495e")
         
-        tk.Label(self, text="New Username").pack(pady=5)
-        self.u_entry = tk.Entry(self); self.u_entry.pack()
-        tk.Label(self, text="New Password").pack(pady=5)
-        self.p_entry = tk.Entry(self, show="*"); self.p_entry.pack()
+        tk.Label(self, text="New Username:", bg="#34495e", fg="white").pack(pady=5)
+        self.user_ent = tk.Entry(self)
+        self.user_ent.pack(pady=5)
         
-        # Create Button Only
-        tk.Button(self, text="Create Account", command=self.do_create, width=15, bg="#3498db").pack(pady=15)
+        tk.Label(self, text="New Password:", bg="#34495e", fg="white").pack(pady=5)
+        self.pass_ent = tk.Entry(self, show="*")
+        self.pass_ent.pack(pady=5)
+        
+        tk.Button(self, text="Create", command=self.attempt_create, bg="#3498db").pack(pady=15)
 
-    def do_create(self):
-        u = self.u_entry.get(); p = self.p_entry.get()
+    def attempt_create(self):
+        u = self.user_ent.get()
+        p = self.pass_ent.get()
         if not u or not p:
-            messagebox.showerror("Error", "Please enter username and password.")
+            messagebox.showerror("Error", "Fields cannot be empty.")
             return
-
-        ok, msg = self.auth.create_account(u, p)
-        if ok:
-            messagebox.showinfo("Success", msg + "\nYou can now Login.")
+            
+        success, msg = self.manager.create_account(u, p)
+        if success:
+            messagebox.showinfo("Success", "Account created! You can now login.")
             self.destroy()
         else:
             messagebox.showerror("Error", msg)

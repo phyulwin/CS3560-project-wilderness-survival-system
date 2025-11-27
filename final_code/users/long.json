@@ -1,0 +1,13 @@
+{
+    "username": "long",
+    "password": "123",
+    "level": 3,
+    "saved_lives": 5,
+    "saved_config": {
+        "difficulty": "Easy",
+        "vis_name": "Cautious",
+        "brain_name": "Explorer",
+        "w": 16,
+        "h": 16
+    }
+}
