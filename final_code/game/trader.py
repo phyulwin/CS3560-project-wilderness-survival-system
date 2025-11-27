@@ -1,12 +1,14 @@
 import tkinter as tk
 import random
-from items import Item
+from game.items import Item
 
+# Dialog for trader identity verification
 class TraderChatDialog(tk.Toplevel):
     """
     A pop-up window where the user must TYPE their username and level exactly
     to verify identity.
     """
+    # Initialize the dialog UI and verification state
     def __init__(self, parent, player, log_callback, username, level):
         super().__init__(parent)
         self.title("Security Check")
@@ -58,6 +60,7 @@ class TraderChatDialog(tk.Toplevel):
         self.add_text("Trader", "Hold it! I can't verify your identity.", "#d35400")
         self.add_text("Trader", "Please enter your exact USERNAME to proceed.", "#d35400")
 
+    # Append a colored message to the chat history
     def add_text(self, sender, msg, color="black"):
         self.txt_chat.config(state=tk.NORMAL)
         self.txt_chat.insert(tk.END, f"{sender}: ", ("bold",))
@@ -67,6 +70,7 @@ class TraderChatDialog(tk.Toplevel):
         self.txt_chat.see(tk.END)
         self.txt_chat.config(state=tk.DISABLED)
 
+    # Handle user input and advance verification steps
     def submit_answer(self):
         if self.verification_step < 0 or self.verification_step >= 2:
             return # Verification ended
@@ -97,6 +101,7 @@ class TraderChatDialog(tk.Toplevel):
             else:
                 self.fail_verification("Level mismatch.")
 
+    # Grant access and enable trading after successful verification
     def success_verification(self):
         self.verification_step = 2
         self.add_text("System", "IDENTITY VERIFIED. ACCESS GRANTED.", "green")
@@ -108,6 +113,7 @@ class TraderChatDialog(tk.Toplevel):
         self.entry_input.config(state=tk.DISABLED)
         self.btn_submit.config(state=tk.DISABLED)
 
+    # Handle failed verification and lock the UI
     def fail_verification(self, reason):
         self.verification_step = -1
         self.add_text("System", f"ERROR: {reason}", "red")
@@ -118,6 +124,7 @@ class TraderChatDialog(tk.Toplevel):
         self.btn_submit.config(state=tk.DISABLED)
         self.btn_trade.config(state=tk.DISABLED)
 
+    # Execute trade if player has enough gold
     def do_trade(self):
         if self.player.current_gold >= 5:
             self.player.current_gold -= 5
@@ -130,18 +137,22 @@ class TraderChatDialog(tk.Toplevel):
         else:
             self.add_text("System", "INSUFFICIENT GOLD (Need 5).", "red")
 
+    # Close dialog when player leaves
     def do_bye(self):
         self.add_text("You", "Leaving...", "#2980b9")
         self.update() 
         self.after(500, self.destroy) 
 
+# Item representing a trader that triggers verification dialog
 class Trader(Item):
     """
     Trader item that triggers the strict verification dialog.
     """
+    # Initialize Trader item representation
     def __init__(self):
         super().__init__(True, "T")
 
+    # Show the verification dialog when player collects the trader
     def on_collect(self, player, log):
         try:
             # Access main window data

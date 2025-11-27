@@ -1,3 +1,4 @@
+# Defines movement direction vectors for navigation
 class Direction:
     """Direction vectors used for movement."""
     NORTH = (-1, 0); SOUTH = (1, 0); EAST = (0, 1); WEST = (0, -1)
@@ -5,6 +6,7 @@ class Direction:
     STAY = (0, 0)
     ALL = [NORTH, SOUTH, EAST, WEST, NORTHEAST, NORTHWEST, SOUTHEAST, SOUTHWEST]
 
+# Stores a sequence of moves and the associated total cost
 class Path:
     """
     Container for move sequences.

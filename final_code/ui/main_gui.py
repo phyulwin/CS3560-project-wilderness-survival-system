@@ -4,9 +4,9 @@ import random
 import winsound
 import threading
 import math  # <--- NEW: Needed for rounding up
-from constants import Direction
-from ui_components import CustomDropdownDialog
-from ui_login import LoginDialog, CreateAccountDialog
+from core.constants import Direction
+from ui.ui_components import CustomDropdownDialog
+from ui.ui_login import LoginDialog, CreateAccountDialog
 
 class MainGUI(tk.Tk):
     def __init__(self, session):

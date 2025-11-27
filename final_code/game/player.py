@@ -1,9 +1,11 @@
-from constants import Direction
+from core.constants import Direction
 
+# Class representing the player with stats, position, vision and brain.
 class Player:
     """
     Stores stats and components.
     """
+    # Initialize player stats, position, and components based on map size.
     def __init__(self, vision_cls, brain_cls, map_w, map_h):
         sf = 15 + (map_w * .75)
         self.max_strength = sf; self.max_water = sf; self.max_food = sf
@@ -13,6 +15,7 @@ class Player:
         self.vision = vision_cls()
         self.brain = brain_cls()
 
+    # Return True if the player can move in direction d given resource costs.
     def can_move(self, d, game_map):
         nr = self.row + d[0]; nc = self.col + d[1]
         target = game_map.get_square(nr, nc)
@@ -22,6 +25,7 @@ class Player:
                 self.current_water >= cost.water_cost and
                 self.current_food >= cost.food_cost)
 
+    # Attempt to move the player in direction d, updating position and resources.
     def move(self, d, game_map):
         if self.can_move(d, game_map):
             nr = self.row + d[0]; nc = self.col + d[1]
@@ -33,18 +37,21 @@ class Player:
             return True
         return False
 
+    # Rest to recover strength while consuming small amounts of water and food.
     def rest(self):
         self.current_strength = min(self.max_strength, self.current_strength + 2)
         self.current_water = max(0, self.current_water - 0.5)
         self.current_food = max(0, self.current_food - 0.5)
 
+    # Check if any vital resource has dropped to fatal levels.
     def is_dead(self):
         return (self.current_strength <= 0.1 or self.current_water <= 0.1 or self.current_food <= 0.1)
 
+    # Check if player has reached the rightmost column (winning condition).
     def has_won(self, game_map):
         return self.col == game_map.width - 1
 
+    # Check if the player cannot move and is low on food or water.
     def is_stuck(self, game_map):
         if any(self.can_move(d, game_map) for d in Direction.ALL): return False
         return (self.current_water <= 0.5 or self.current_food <= 0.5)
-    

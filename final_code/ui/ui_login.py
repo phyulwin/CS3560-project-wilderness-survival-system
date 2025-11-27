@@ -1,7 +1,10 @@
 import tkinter as tk
 from tkinter import messagebox
 
+# Login dialog window for authenticating a user
 class LoginDialog(tk.Toplevel):
+
+    # Initialize login UI with username/password fields
     def __init__(self, parent, auth_manager, on_success):
         super().__init__(parent)
         self.title("Login")
@@ -17,6 +20,7 @@ class LoginDialog(tk.Toplevel):
         # Login Button Only
         tk.Button(self, text="Login", command=self.do_login, width=15, bg="#2ecc71").pack(pady=15)
 
+    # Attempt login and route success/failure
     def do_login(self):
         u = self.u_entry.get(); p = self.p_entry.get()
         data, msg = self.auth.load_account(u, p)
@@ -26,7 +30,10 @@ class LoginDialog(tk.Toplevel):
         else:
             messagebox.showerror("Error", msg)
 
+# Dialog window for creating a new account
 class CreateAccountDialog(tk.Toplevel):
+
+    # Initialize account creation UI
     def __init__(self, parent, auth_manager):
         super().__init__(parent)
         self.title("Create Account")
@@ -40,7 +47,8 @@ class CreateAccountDialog(tk.Toplevel):
         
         # Create Button Only
         tk.Button(self, text="Create Account", command=self.do_create, width=15, bg="#3498db").pack(pady=15)
-
+    
+    # Validate input and create the new account
     def do_create(self):
         u = self.u_entry.get(); p = self.p_entry.get()
         if not u or not p:
