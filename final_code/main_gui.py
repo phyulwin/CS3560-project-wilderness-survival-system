@@ -104,7 +104,7 @@ class TraderTerminal(tk.Toplevel):
                 if self.attempts > 0:
                     self.write_log(f"System: ERROR. Username mismatch. {self.attempts} attempts left.", "err")
                 else:
-                    self.write_log("Trader: You're an imposter! Get out of here before I call the Guards!", "err")
+                    self.write_log("Trader: You're an imposter! \n\tGet out of here before I call the Guards!", "err")
                     self.fail_security()
 
         # --- LOGIC FOR LEVEL ---
