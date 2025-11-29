@@ -1,0 +1,13 @@
+{
+    "username": "test2",
+    "password": "test",
+    "level": 1,
+    "saved_lives": 5,
+    "saved_config": {
+        "difficulty": "Hard",
+        "vis_name": "Far-Sight",
+        "brain_name": "Smart",
+        "w": 25,
+        "h": 34
+    }
+}

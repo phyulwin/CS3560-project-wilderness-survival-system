@@ -1,6 +1,6 @@
 import abc
 import random
-from constants import Direction
+from core.constants import Direction
 
 class Brain(abc.ABC):
     """

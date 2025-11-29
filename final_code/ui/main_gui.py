@@ -4,10 +4,10 @@ import random
 import winsound
 import threading
 import math
-from constants import Direction
-from ui_components import CustomDropdownDialog
-from ui_login import LoginDialog, CreateAccountDialog
-from trader import Trader
+from core.constants import Direction
+from ui.ui_components import CustomDropdownDialog
+from ui.ui_login import LoginDialog, CreateAccountDialog
+from game.trader import Trader
 
 # --- CLASS: Security Check Terminal ---
 class TraderTerminal(tk.Toplevel):

@@ -1,5 +1,5 @@
 import abc
-from items import Item
+from game.items import Item
 
 class Trader(Item):
     """

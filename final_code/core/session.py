@@ -1,8 +1,8 @@
-from map_grid import Map
-from player import Player
+from game.map_grid import Map
+from game.player import Player
 # <--- CHANGED: Import the new 4th Vision Type
-from vision import CautiousVision, KeenEyedVision, FarSightVision, EagleEyeVision
-from brain import ExplorerBrain, SurvivalistBrain, SmartBrain
+from game.vision import CautiousVision, KeenEyedVision, FarSightVision, EagleEyeVision
+from game.brain import ExplorerBrain, SurvivalistBrain, SmartBrain
 import random
 
 class GameSession:

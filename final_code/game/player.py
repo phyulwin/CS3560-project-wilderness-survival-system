@@ -1,4 +1,4 @@
-from constants import Direction
+from core.constants import Direction
 
 class Player:
     """

@@ -1,7 +1,7 @@
 import abc
 from collections import deque
-from items import FoodBonus, WaterBonus
-from constants import Path, Direction
+from game.items import FoodBonus, WaterBonus
+from core.constants import Path, Direction
 
 class Vision(abc.ABC):
     """

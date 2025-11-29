@@ -1,7 +1,7 @@
 import random
-from terrain import Plains, Forest, Mountain, Desert, Swamp
-from items import FoodBonus, WaterBonus, GoldBonus
-from trader import FriendlyTrader, GreedyTrader  # <--- CHANGED
+from game.terrain import Plains, Forest, Mountain, Desert, Swamp
+from game.items import FoodBonus, WaterBonus, GoldBonus
+from game.trader import FriendlyTrader, GreedyTrader  # <--- CHANGED
 
 class Square:
     def __init__(self, terrain):
