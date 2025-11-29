@@ -1,9 +1,11 @@
 import tkinter as tk
 from tkinter import ttk
 
+# Dialog window for selecting an option from a dropdown
 class CustomDropdownDialog(tk.Toplevel):
     """
     A modal dialog to select an option from a list.
+    Initialize dialog with title, prompt text, and dropdown options
     """
     def __init__(self, parent, title, prompt, options):
         super().__init__(parent)
@@ -24,7 +26,8 @@ class CustomDropdownDialog(tk.Toplevel):
         self.transient(parent)
         self.grab_set()
         self.wait_window()
-        
+    
+    # Confirm selection and close dialog
     def on_ok(self):
         self.result = self.combo.get()
         self.destroy()

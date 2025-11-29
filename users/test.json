@@ -1,5 +1,13 @@
 {
     "username": "test",
-    "password": "tets",
-    "level": 1
+    "password": "test",
+    "level": 1,
+    "saved_lives": 4,
+    "saved_config": {
+        "difficulty": "Medium",
+        "vis_name": "Keen-Eyed",
+        "brain_name": "Survivalist",
+        "w": 40,
+        "h": 23
+    }
 }

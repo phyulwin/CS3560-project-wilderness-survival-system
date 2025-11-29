@@ -3,9 +3,11 @@ from collections import deque
 from game.items import FoodBonus, WaterBonus
 from core.constants import Path, Direction
 
+# Vision scans the surrounding map for items within a limited range.
+# Provides generic pathfinding to the nearest item of a given class.
 class Vision(abc.ABC):
     """
-    Base Vision class.
+    Base Vision class. 
     Defines how far the agent can 'see' to find resources.
     """
     def __init__(self, radius):
@@ -14,6 +16,7 @@ class Vision(abc.ABC):
     def _find_closest(self, game_map, player, target_type):
         """
         Breadth-First Search (BFS) to find the closest item of target_type.
+        Returns a Path to that item or None if not found within vision_range.
         """
         start_node = (player.row, player.col)
         queue = deque([(start_node, [])]) # ( (r,c), [moves] )
@@ -45,9 +48,13 @@ class Vision(abc.ABC):
                         queue.append(((nr, nc), path + [d]))
         return None
 
+    # Shortcut to find the closest FoodBonus using _find_closest_item.
+    # Returns a Path or None.
     def closestFood(self, game_map, player):
         return self._find_closest(game_map, player, FoodBonus)
 
+    # Shortcut to find the closest WaterBonus using _find_closest_item.
+    # Returns a Path or None.
     def closestWater(self, game_map, player):
         return self._find_closest(game_map, player, WaterBonus)
 
