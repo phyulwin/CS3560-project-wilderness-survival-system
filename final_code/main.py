@@ -11,7 +11,7 @@ Execution begins here when the application is launched by the end user.
 
 from core.auth import AccountManager
 from core.session import GameSession
-from ui.main_gui import MainGUI
+from ui.main_gui import WildernessSurvivalApp
 
 if __name__ == "__main__":
     # Initialize Core Systems
@@ -19,5 +19,5 @@ if __name__ == "__main__":
     session = GameSession(auth)
     
     # Launch GUI
-    app = MainGUI(session)
+    app = WildernessSurvivalApp(session)
     app.mainloop()

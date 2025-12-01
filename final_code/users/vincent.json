@@ -1,0 +1,30 @@
+{
+    "username": "vincent",
+    "password_hash": "a25fac6789fbfe7a58dab68aa7fe2e874683e44d8b32c0b435587253fe2362c5",
+    "salt": "cd601831a5dc92ed4348c4f85862a731",
+    "worlds": {
+        "Test": {
+            "difficulty": "Easy",
+            "width": 10,
+            "height": 10,
+            "players": [
+                {
+                    "name": "Player 1",
+                    "vision": "Keen-Eyed",
+                    "brain": "Explorer",
+                    "color": "#2ecc71",
+                    "stats": {
+                        "str": 8.5,
+                        "water": 12.5,
+                        "food": 11.5,
+                        "gold": 0,
+                        "row": 5,
+                        "col": 9
+                    }
+                }
+            ],
+            "is_multi_agent": false,
+            "seed": 183006
+        }
+    }
+}
