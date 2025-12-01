@@ -4,12 +4,32 @@ import random
 import winsound
 import threading
 import math
-from core.constants import Direction
-from ui.ui_components import CustomDropdownDialog
-from ui.ui_login import LoginDialog, CreateAccountDialog
-from game.trader import Trader
+import sys
+import os
 
-# --- CLASS: Security Check Terminal ---
+# --- PATH SETUP ---
+# Forces Python to look in the 'final_code' folder so it can find 'core' and 'game'
+current_ui_folder = os.path.dirname(os.path.abspath(__file__))  # path to /ui
+project_root = os.path.dirname(current_ui_folder)               # path to /final_code
+
+# Add project root to system path if missing
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+# --- IMPORTS ---
+# Import exactly where the files are located based on your structure
+from core.constants import Direction  #
+from game.trader import Trader        #
+
+# UI Imports: robustly handle whether we are running from root or inside ui/
+try:
+    from ui.ui_components import CustomDropdownDialog
+    from ui.ui_login import LoginDialog, CreateAccountDialog
+except ImportError:
+    from ui_components import CustomDropdownDialog
+    from ui_login import LoginDialog, CreateAccountDialog
+
+# --- CLASS: Security Check Terminal (The Trader Window) ---
 class TraderTerminal(tk.Toplevel):
     def __init__(self, parent, trader_name, real_user, real_level, cost, on_trade_success):
         super().__init__(parent)
@@ -18,7 +38,7 @@ class TraderTerminal(tk.Toplevel):
         self.configure(bg="#ecf0f1")
         self.resizable(False, False)
         
-        # Lock interaction to this window
+        # Lock interaction to this window (Modal)
         self.transient(parent)
         self.grab_set()
         self.focus_set()
@@ -65,14 +85,12 @@ class TraderTerminal(tk.Toplevel):
         btn_frame = tk.Frame(self, bg="#ecf0f1")
         btn_frame.pack(pady=(5, 15))
         
-        self.btn_trade = tk.Button(btn_frame, text="💰 Trade", state="disabled", 
+        self.btn_trade = tk.Button(btn_frame, text="Trade", state="disabled", 
                                    bg="#f1c40f", fg="black", font=("Arial", 10, "bold"), 
                                    width=15, command=self.do_trade)
         self.btn_trade.pack(side=tk.LEFT, padx=10)
         
-        # --- LEAVE BUTTON ---
-        # command=self.destroy ensures the window simply closes.
-        tk.Button(btn_frame, text="🔥 Leave", bg="#e74c3c", fg="white", 
+        tk.Button(btn_frame, text="Leave", bg="#e74c3c", fg="white", 
                   font=("Arial", 10, "bold"), width=12, command=self.destroy).pack(side=tk.LEFT, padx=10)
 
         self.write_log("System: BIOMETRIC SCAN FAILED.", "sys")
@@ -92,13 +110,12 @@ class TraderTerminal(tk.Toplevel):
         self.write_log(f"You: {val}", "user")
         self.entry.delete(0, tk.END)
 
-        # --- LOGIC FOR USERNAME ---
         if self.step == "USERNAME":
             if val == self.real_user:
                 self.write_log("System: USERNAME MATCH CONFIRMED.", "success")
                 self.write_log("Trader: Okay, name matches. Now, what is your current LEVEL?", "trader")
                 self.step = "LEVEL"
-                self.attempts = 3 # Reset attempts
+                self.attempts = 3 
             else:
                 self.attempts -= 1
                 if self.attempts > 0:
@@ -107,7 +124,6 @@ class TraderTerminal(tk.Toplevel):
                     self.write_log("Trader: You're an imposter! \n\tGet out of here before I call the Guards!", "err")
                     self.fail_security()
 
-        # --- LOGIC FOR LEVEL ---
         elif self.step == "LEVEL":
             try:
                 if int(val) == self.real_level:
@@ -115,7 +131,7 @@ class TraderTerminal(tk.Toplevel):
                     self.write_log(f"Trader: Verified. I offer supplies (+20 Food/Water).", "trader")
                     self.write_log(f"Trader: My price is {self.cost} Gold.", "trader")
                     
-                    self.btn_trade.config(state="normal", text=f"💰 Trade ({self.cost} G)")
+                    self.btn_trade.config(state="normal", text=f"Trade ({self.cost} G)")
                     self.entry.config(state="disabled")
                     self.step = "DONE"
                 else:
@@ -146,6 +162,12 @@ class MainGUI(tk.Tk):
         self.configure(bg="#2c3e50")
         self.session = session
         
+        # --- FIX: Handle the X button to save progress ---
+        self.protocol("WM_DELETE_WINDOW", self.on_close)
+        
+        # --- Autoplay State ---
+        self.autoplay_active = False
+
         self.cell_size = 30
         self.offset_x = 0
         self.offset_y = 0
@@ -164,6 +186,13 @@ class MainGUI(tk.Tk):
         ]
 
         self.setup_layout()
+    
+    # --- FIX: New method to save on close ---
+    def on_close(self):
+        """Safely handle closing the window via the X button"""
+        if self.session.current_user:
+            self.logout() # This triggers the save logic in session.py
+        self.destroy()
 
     def setup_layout(self):
         main_frame = tk.Frame(self, bg="#34495e")
@@ -188,7 +217,6 @@ class MainGUI(tk.Tk):
         self.lbl_tile_name = tk.Label(sidebar, text="--", font=("Arial", 12, "bold"), fg="white", bg="#34495e")
         self.lbl_tile_name.pack(pady=2)
         
-        # Tile Cost Bars
         self.tile_bars = {}
         for res, color, max_val in [("Strength", "#e74c3c", 5), ("Water", "#3498db", 5), ("Food", "#2ecc71", 5)]:
             f = tk.Frame(sidebar, bg="#34495e")
@@ -247,6 +275,11 @@ class MainGUI(tk.Tk):
         
         self.btn_next = tk.Button(sidebar, text="Next Turn", command=self.next_turn, state=tk.DISABLED, bg="#ecf0f1")
         self.btn_next.pack(fill=tk.X, padx=10, pady=5)
+
+        # --- Autoplay Button ---
+        self.btn_auto = tk.Button(sidebar, text="Start Autoplay", command=self.toggle_autoplay, state=tk.DISABLED, bg="#8e44ad", fg="white")
+        self.btn_auto.pack(fill=tk.X, padx=10, pady=5)
+        # ----------------------------
         
         tk.Button(sidebar, text="Reset Level 1", command=self.reset_game, bg="#e74c3c", fg="white").pack(fill=tk.X, padx=10, pady=5)
         
@@ -260,6 +293,39 @@ class MainGUI(tk.Tk):
         self.log_box.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
     # --- LOGIC METHODS ---
+
+    # --- Autoplay Logic ---
+    def toggle_autoplay(self):
+        if self.autoplay_active:
+            self.stop_autoplay()
+        else:
+            self.start_autoplay()
+
+    def start_autoplay(self):
+        if not self.session.player: return
+        self.autoplay_active = True
+        self.btn_auto.config(text="Stop Autoplay", bg="#c0392b")
+        self.btn_next.config(state=tk.DISABLED) # Disable manual next while auto is running
+        self.loop_autoplay()
+
+    def stop_autoplay(self):
+        self.autoplay_active = False
+        self.btn_auto.config(text="Start Autoplay", bg="#8e44ad")
+        if self.session.player:
+            self.btn_next.config(state=tk.NORMAL)
+
+    def loop_autoplay(self):
+        if not self.autoplay_active: return
+        
+        if not self.session.player or self.session.player.is_dead():
+            self.stop_autoplay()
+            return
+
+        self.next_turn()
+
+        if self.autoplay_active:
+            self.after(300, self.loop_autoplay)
+    # ---------------------------
 
     def on_mouse_hover(self, event):
         if not self.session.game_map or self.cell_size == 0: return
@@ -360,7 +426,7 @@ class MainGUI(tk.Tk):
         pad = self.cell_size * 0.1
         self.canvas.create_oval(px+pad, py+pad, px+self.cell_size-pad, py+self.cell_size-pad, 
                                 fill="#2ecc71", outline="#27ae60", width=2)
-        self.canvas.create_text(px+(self.cell_size/2), py+(self.cell_size/2), text="🐜", font=emoji_font)
+        self.canvas.create_text(px+(self.cell_size/2), py+(self.cell_size/2), text="P", font=emoji_font)
 
     def on_resize(self, event):
         self.draw_map()
@@ -420,7 +486,7 @@ class MainGUI(tk.Tk):
             if self.session.lives < 5: msg += f"\n(Lives remaining: {self.session.lives})"
             
             if not messagebox.askyesno("Resume Game", msg):
-                self.session.reset_progress() # Force Reset if they say NO
+                self.session.reset_progress() 
         
         elif self.session.lives <= 0:
             self.session.config = None
@@ -446,6 +512,9 @@ class MainGUI(tk.Tk):
         
         self.session.start_level(increase_difficulty=level_up, reset_lives=reset_lives)
         self.btn_next.config(state=tk.NORMAL)
+        
+        self.btn_auto.config(state=tk.NORMAL)
+
         self.update_game_info()
         self.draw_map()
         self.update_ui()
@@ -466,6 +535,13 @@ class MainGUI(tk.Tk):
         sq = m.get_square(p.row, p.col)
         for item in list(sq.items):
             if isinstance(item, Trader):
+                # --- AUTO-RESUME LOGIC ---
+                was_autoplaying = self.autoplay_active
+                
+                if was_autoplaying:
+                    self.stop_autoplay()
+                    self.log("Autoplay paused for Security Check.")
+
                 actual_user = self.session.current_user
                 actual_level = self.session.user_data.get("level", 1)
 
@@ -490,6 +566,10 @@ class MainGUI(tk.Tk):
                 
                 term = TraderTerminal(self, item.name, actual_user, actual_level, trade_cost, trade_callback)
                 self.wait_window(term)
+                
+                if was_autoplaying:
+                    self.start_autoplay()
+                
                 continue 
 
             item.on_collect(p, self.log)
@@ -499,6 +579,7 @@ class MainGUI(tk.Tk):
         self.update_ui()
         
         if p.has_won(m):
+            self.stop_autoplay()
             self.play_sound("win")
             if messagebox.askyesno("Victory!", "You reached the other side! Next Level?"):
                 self.session.advance_level_progress()
@@ -507,6 +588,7 @@ class MainGUI(tk.Tk):
                 self.logout()
         
         elif p.is_dead() or p.is_stuck(m):
+            self.stop_autoplay()
             self.play_sound("lose")
             self.session.lives -= 1
             self.update_ui()
@@ -534,6 +616,9 @@ class MainGUI(tk.Tk):
             self.start_game_sequence(level_up=False, reset_lives=True)
 
     def logout(self):
+        self.stop_autoplay()
+        self.btn_auto.config(state=tk.DISABLED)
+        
         self.session.logout()
         self.canvas.delete("all")
         self.btn_next.config(state=tk.DISABLED)
