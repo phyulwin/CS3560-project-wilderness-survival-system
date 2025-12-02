@@ -6,6 +6,7 @@ import threading
 import math
 import sys
 import os
+import traceback
 
 # --- PATH SETUP ---
 current_ui_folder = os.path.dirname(os.path.abspath(__file__)) 
@@ -158,7 +159,7 @@ class MainGUI(tk.Tk):
         
         # --- State Variables ---
         self.autoplay_active = False
-        self.auto_trade_enabled = tk.BooleanVar(value=False) # New State
+        self.auto_trade_enabled = tk.BooleanVar(value=False)
 
         self.cell_size = 30
         self.offset_x = 0
@@ -273,14 +274,14 @@ class MainGUI(tk.Tk):
         self.btn_auto = tk.Button(sidebar, text="Start Autoplay", command=self.toggle_autoplay, state=tk.DISABLED, bg="#8e44ad", fg="white")
         self.btn_auto.pack(fill=tk.X, padx=10, pady=5)
         
-        # --- NEW: Auto Trade Checkbox ---
+        # --- Auto Trade Checkbox ---
         chk_auto_trade = tk.Checkbutton(sidebar, text="Auto Trade (If enough Gold)", 
                                         variable=self.auto_trade_enabled, 
                                         bg="#34495e", fg="#f1c40f", selectcolor="#2c3e50",
                                         activebackground="#34495e", activeforeground="#f1c40f",
                                         font=("Arial", 9, "bold"))
         chk_auto_trade.pack(fill=tk.X, padx=10, pady=5)
-        # --------------------------------
+        # ---------------------------
         
         tk.Button(sidebar, text="Reset Level 1", command=self.reset_game, bg="#e74c3c", fg="white").pack(fill=tk.X, padx=10, pady=5)
         
@@ -547,11 +548,9 @@ class MainGUI(tk.Tk):
                         self.log(f"Auto-Traded with {item.name} (-{trade_cost} G)")
                         
                         if not item.is_repeating: sq.items.remove(item)
-                        continue # Skip showing popup window
+                        continue 
                     else:
                         self.log(f"Skipped {item.name} (Not enough Gold for Auto-Trade)")
-                        # If not enough gold, we still pause so user can see it? 
-                        # Or just skip? Let's skip to keep auto-play fast.
                         continue 
                 # -------------------------
 
@@ -593,11 +592,19 @@ class MainGUI(tk.Tk):
         if p.has_won(m):
             self.stop_autoplay()
             self.play_sound("win")
+            
+            # --- MODIFIED VICTORY LOGIC ---
             if messagebox.askyesno("Victory!", "You reached the other side! Next Level?"):
                 self.session.advance_level_progress()
                 self.start_game_sequence(level_up=True, reset_lives=True)
             else:
-                self.logout()
+                # User declined next level. Ask to reset or logout.
+                if messagebox.askyesno("Game Paused", "Do you want to Restart at Level 1?\n(Click 'No' to Log Out)"):
+                    self.session.reset_progress()
+                    self.start_game_sequence(level_up=False, reset_lives=True)
+                else:
+                    self.logout()
+            # ------------------------------
         
         elif p.is_dead() or p.is_stuck(m):
             self.stop_autoplay()

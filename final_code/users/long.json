@@ -1,13 +1,13 @@
 {
     "username": "long",
     "password": "123",
-    "level": 15,
+    "level": 2,
     "saved_lives": 5,
     "saved_config": {
         "difficulty": "Easy",
-        "vis_name": "Eagle-Eye",
+        "vis_name": "Cautious",
         "brain_name": "Survivalist",
-        "w": 64,
-        "h": 54
+        "w": 31,
+        "h": 23
     }
 }
