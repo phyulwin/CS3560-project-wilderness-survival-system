@@ -1,16 +1,19 @@
-from game.map_grid import Map
-from game.player import Player
-# <--- CHANGED: Import the new 4th Vision Type
-from game.vision import CautiousVision, KeenEyedVision, FarSightVision, EagleEyeVision
-from game.brain import ExplorerBrain, SurvivalistBrain, SmartBrain
 import random
+try:
+    from game.map_grid import Map
+    from game.player import Player
+    from game.vision import CautiousVision, KeenEyedVision, FarSightVision, EagleEyeVision
+    from game.brain import ExplorerBrain, SurvivalistBrain, SmartBrain
+except ImportError:
+    # Fallback for direct execution
+    import sys, os
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+    from game.map_grid import Map
+    from game.player import Player
+    from game.vision import CautiousVision, KeenEyedVision, FarSightVision, EagleEyeVision
+    from game.brain import ExplorerBrain, SurvivalistBrain, SmartBrain
 
-# Manages the game session, state, and persistence.
 class GameSession:
-    """
-    Manages the current active game context and saves/loads state.
-    Initialize a new GameSession with account manager and default state.
-    """
     def __init__(self, account_manager):
         self.account_manager = account_manager
         self.current_user = None
@@ -21,7 +24,6 @@ class GameSession:
         self.lives = 5
         self.config = None
 
-    # Set current user and restore saved configuration and lives.
     def login(self, username, data):
         self.current_user = username
         self.user_data = data
@@ -29,7 +31,6 @@ class GameSession:
         if "saved_config" in data:
             self.restore_config(data["saved_config"])
 
-    # Save current progress and clear session state.
     def logout(self):
         if self.current_user and self.user_data:
             self.user_data["saved_lives"] = self.lives
@@ -44,7 +45,6 @@ class GameSession:
         self.config = None
         self.lives = 5
 
-    # Return a JSON-serializable dict of the current config or None.
     def get_serializable_config(self):
         if not self.config: return None
         return {
@@ -55,9 +55,7 @@ class GameSession:
             "h": self.config["h"]
         }
 
-    # Restore config dict and map saved names to vision/brain classes.
     def restore_config(self, saved_cfg):
-        # <--- CHANGED: Added EagleEye to map
         v_map = {
             "Cautious": CautiousVision, 
             "Keen-Eyed": KeenEyedVision, 
@@ -65,13 +63,12 @@ class GameSession:
             "Eagle-Eye": EagleEyeVision
         }
         b_map = {"Explorer":ExplorerBrain, "Survivalist":SurvivalistBrain, "Smart":SmartBrain}
+        
         self.config = saved_cfg.copy()
-        self.config["vis_cls"] = v_map.get(saved_cfg["vis_name"], CautiousVision)
-        self.config["brain_cls"] = b_map.get(saved_cfg["brain_name"], ExplorerBrain)
+        self.config["vis_cls"] = v_map.get(saved_cfg.get("vis_name"), CautiousVision)
+        self.config["brain_cls"] = b_map.get(saved_cfg.get("brain_name"), ExplorerBrain)
 
-    # Set session configuration from explicit choices.
     def set_config(self, diff, v_name, b_name, w, h):
-        # <--- CHANGED: Added EagleEye to map
         v_map = {
             "Cautious": CautiousVision, 
             "Keen-Eyed": KeenEyedVision, 
@@ -89,10 +86,10 @@ class GameSession:
             "h": h
         }
 
-    # Create map and player for the current level, optionally adjust difficulty/lives.
     def start_level(self, increase_difficulty=False, reset_lives=False):
         if not self.config: return
         
+        # 1. Update difficulty parameters
         if increase_difficulty:
             self.config["w"] += 1
             self.config["h"] += 1
@@ -100,13 +97,22 @@ class GameSession:
         elif reset_lives:
             self.lives = 5
             
+        # 2. Generate New Map & Player (Critical Step)
         w, h = self.config["w"], self.config["h"]
         self.game_map = Map(w, h, self.config["difficulty"])
         self.player = Player(self.config["vis_cls"], self.config["brain_cls"], w, h)
         self.player.col = 0
         self.player.row = random.randint(0, h - 1)
 
-    # Increment level and save progress to account manager.
+        # 3. Save Progress (Safe Mode)
+        # We do this AFTER generating the map so the game continues even if save fails
+        if increase_difficulty and self.current_user:
+            try:
+                self.user_data["saved_config"] = self.get_serializable_config()
+                self.account_manager.save_progress(self.current_user, self.user_data)
+            except Exception as e:
+                print(f"Warning: Failed to auto-save level progress: {e}")
+
     def advance_level_progress(self):
         self.user_data["level"] = self.user_data.get("level", 1) + 1
         self.user_data["saved_lives"] = self.lives
@@ -114,7 +120,6 @@ class GameSession:
             self.user_data["saved_config"] = self.get_serializable_config()
         self.account_manager.save_progress(self.current_user, self.user_data)
 
-    # Reset user progress and save it.
     def reset_progress(self):
         self.user_data["level"] = 1
         self.config = None 
