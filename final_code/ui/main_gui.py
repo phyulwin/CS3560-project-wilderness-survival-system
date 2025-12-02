@@ -6,7 +6,6 @@ import threading
 import math
 import sys
 import os
-import traceback # Added for error reporting
 
 # --- PATH SETUP ---
 current_ui_folder = os.path.dirname(os.path.abspath(__file__)) 
@@ -157,7 +156,9 @@ class MainGUI(tk.Tk):
         
         self.protocol("WM_DELETE_WINDOW", self.on_close)
         
+        # --- State Variables ---
         self.autoplay_active = False
+        self.auto_trade_enabled = tk.BooleanVar(value=False) # New State
 
         self.cell_size = 30
         self.offset_x = 0
@@ -271,6 +272,15 @@ class MainGUI(tk.Tk):
 
         self.btn_auto = tk.Button(sidebar, text="Start Autoplay", command=self.toggle_autoplay, state=tk.DISABLED, bg="#8e44ad", fg="white")
         self.btn_auto.pack(fill=tk.X, padx=10, pady=5)
+        
+        # --- NEW: Auto Trade Checkbox ---
+        chk_auto_trade = tk.Checkbutton(sidebar, text="Auto Trade (If enough Gold)", 
+                                        variable=self.auto_trade_enabled, 
+                                        bg="#34495e", fg="#f1c40f", selectcolor="#2c3e50",
+                                        activebackground="#34495e", activeforeground="#f1c40f",
+                                        font=("Arial", 9, "bold"))
+        chk_auto_trade.pack(fill=tk.X, padx=10, pady=5)
+        # --------------------------------
         
         tk.Button(sidebar, text="Reset Level 1", command=self.reset_game, bg="#e74c3c", fg="white").pack(fill=tk.X, padx=10, pady=5)
         
@@ -494,7 +504,6 @@ class MainGUI(tk.Tk):
                 
                 self.session.set_config(diff, vis, brain, w, h)
             
-            # Critical step for level generation
             self.session.start_level(increase_difficulty=level_up, reset_lives=reset_lives)
             self.btn_next.config(state=tk.NORMAL)
             self.btn_auto.config(state=tk.NORMAL)
@@ -505,7 +514,6 @@ class MainGUI(tk.Tk):
             self.log(f"Started Level {self.session.user_data['level']}")
             
         except Exception as e:
-            traceback.print_exc() # Print full error to console
             messagebox.showerror("Error Starting Level", f"Failed to start level: {e}")
 
     def next_turn(self):
@@ -523,20 +531,37 @@ class MainGUI(tk.Tk):
         sq = m.get_square(p.row, p.col)
         for item in list(sq.items):
             if isinstance(item, Trader):
-                was_autoplaying = self.autoplay_active
                 
+                trade_cost = 10
+                if "Friendly" in item.name:
+                    trade_cost = 7
+                elif "Greedy" in item.name:
+                    trade_cost = 15
+
+                # --- AUTO TRADE LOGIC ---
+                if self.auto_trade_enabled.get():
+                    if p.current_gold >= trade_cost:
+                        p.current_gold -= trade_cost
+                        p.current_food = min(p.max_food, p.current_food + 20)
+                        p.current_water = min(p.max_water, p.current_water + 20)
+                        self.log(f"Auto-Traded with {item.name} (-{trade_cost} G)")
+                        
+                        if not item.is_repeating: sq.items.remove(item)
+                        continue # Skip showing popup window
+                    else:
+                        self.log(f"Skipped {item.name} (Not enough Gold for Auto-Trade)")
+                        # If not enough gold, we still pause so user can see it? 
+                        # Or just skip? Let's skip to keep auto-play fast.
+                        continue 
+                # -------------------------
+
+                was_autoplaying = self.autoplay_active
                 if was_autoplaying:
                     self.stop_autoplay()
                     self.log("Autoplay paused for Security Check.")
 
                 actual_user = self.session.current_user
                 actual_level = self.session.user_data.get("level", 1)
-
-                trade_cost = 10
-                if "Friendly" in item.name:
-                    trade_cost = 7
-                elif "Greedy" in item.name:
-                    trade_cost = 15
 
                 def trade_callback(terminal):
                     if p.current_gold >= trade_cost:
