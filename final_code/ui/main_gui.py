@@ -6,22 +6,18 @@ import threading
 import math
 import sys
 import os
+import traceback # Added for error reporting
 
 # --- PATH SETUP ---
-# Forces Python to look in the 'final_code' folder so it can find 'core' and 'game'
-current_ui_folder = os.path.dirname(os.path.abspath(__file__))  # path to /ui
-project_root = os.path.dirname(current_ui_folder)               # path to /final_code
-
-# Add project root to system path if missing
+current_ui_folder = os.path.dirname(os.path.abspath(__file__)) 
+project_root = os.path.dirname(current_ui_folder) 
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 # --- IMPORTS ---
-# Import exactly where the files are located based on your structure
-from core.constants import Direction  #
-from game.trader import Trader        #
+from core.constants import Direction 
+from game.trader import Trader 
 
-# UI Imports: robustly handle whether we are running from root or inside ui/
 try:
     from ui.ui_components import CustomDropdownDialog
     from ui.ui_login import LoginDialog, CreateAccountDialog
@@ -38,12 +34,10 @@ class TraderTerminal(tk.Toplevel):
         self.configure(bg="#ecf0f1")
         self.resizable(False, False)
         
-        # Lock interaction to this window (Modal)
         self.transient(parent)
         self.grab_set()
         self.focus_set()
         
-        # Handle the "X" button same as "Leave"
         self.protocol("WM_DELETE_WINDOW", self.destroy)
         
         self.real_user = real_user
@@ -54,7 +48,6 @@ class TraderTerminal(tk.Toplevel):
         self.step = "USERNAME"
         self.attempts = 3
         
-        # UI Elements
         tk.Label(self, text="SECURITY CHECKPOINT", fg="#c0392b", bg="#ecf0f1", 
                  font=("Courier", 16, "bold")).pack(pady=(15, 0))
         tk.Label(self, text=f"Connection: {trader_name}", fg="#2c3e50", bg="#ecf0f1", 
@@ -162,10 +155,8 @@ class MainGUI(tk.Tk):
         self.configure(bg="#2c3e50")
         self.session = session
         
-        # --- FIX: Handle the X button to save progress ---
         self.protocol("WM_DELETE_WINDOW", self.on_close)
         
-        # --- Autoplay State ---
         self.autoplay_active = False
 
         self.cell_size = 30
@@ -187,11 +178,13 @@ class MainGUI(tk.Tk):
 
         self.setup_layout()
     
-    # --- FIX: New method to save on close ---
     def on_close(self):
         """Safely handle closing the window via the X button"""
         if self.session.current_user:
-            self.logout() # This triggers the save logic in session.py
+            try:
+                self.logout()
+            except:
+                pass 
         self.destroy()
 
     def setup_layout(self):
@@ -276,10 +269,8 @@ class MainGUI(tk.Tk):
         self.btn_next = tk.Button(sidebar, text="Next Turn", command=self.next_turn, state=tk.DISABLED, bg="#ecf0f1")
         self.btn_next.pack(fill=tk.X, padx=10, pady=5)
 
-        # --- Autoplay Button ---
         self.btn_auto = tk.Button(sidebar, text="Start Autoplay", command=self.toggle_autoplay, state=tk.DISABLED, bg="#8e44ad", fg="white")
         self.btn_auto.pack(fill=tk.X, padx=10, pady=5)
-        # ----------------------------
         
         tk.Button(sidebar, text="Reset Level 1", command=self.reset_game, bg="#e74c3c", fg="white").pack(fill=tk.X, padx=10, pady=5)
         
@@ -287,14 +278,10 @@ class MainGUI(tk.Tk):
         self.auth_frame.pack(fill=tk.X, pady=10)
         self.update_auth_buttons(is_logged_in=False)
         
-        # Log
         tk.Label(sidebar, text="LOG", font=title_font, fg="#f1c40f", bg="#34495e").pack(pady=(5, 2))
         self.log_box = tk.Text(sidebar, height=10, state=tk.DISABLED, bg="#2c3e50", fg="white", font=("Courier", 8))
         self.log_box.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-    # --- LOGIC METHODS ---
-
-    # --- Autoplay Logic ---
     def toggle_autoplay(self):
         if self.autoplay_active:
             self.stop_autoplay()
@@ -305,7 +292,7 @@ class MainGUI(tk.Tk):
         if not self.session.player: return
         self.autoplay_active = True
         self.btn_auto.config(text="Stop Autoplay", bg="#c0392b")
-        self.btn_next.config(state=tk.DISABLED) # Disable manual next while auto is running
+        self.btn_next.config(state=tk.DISABLED)
         self.loop_autoplay()
 
     def stop_autoplay(self):
@@ -316,16 +303,12 @@ class MainGUI(tk.Tk):
 
     def loop_autoplay(self):
         if not self.autoplay_active: return
-        
         if not self.session.player or self.session.player.is_dead():
             self.stop_autoplay()
             return
-
         self.next_turn()
-
         if self.autoplay_active:
             self.after(300, self.loop_autoplay)
-    # ---------------------------
 
     def on_mouse_hover(self, event):
         if not self.session.game_map or self.cell_size == 0: return
@@ -480,45 +463,50 @@ class MainGUI(tk.Tk):
         self.start_game_sequence(level_up=False, reset_lives=False)
 
     def start_game_sequence(self, level_up, reset_lives=False):
-        if self.session.config and not level_up and not reset_lives:
-            lvl = self.session.user_data.get("level", 1)
-            msg = f"Resume Level {lvl} with previous setup?"
-            if self.session.lives < 5: msg += f"\n(Lives remaining: {self.session.lives})"
+        try:
+            if self.session.config and not level_up and not reset_lives:
+                lvl = self.session.user_data.get("level", 1)
+                msg = f"Resume Level {lvl} with previous setup?"
+                if self.session.lives < 5: msg += f"\n(Lives remaining: {self.session.lives})"
+                
+                if not messagebox.askyesno("Resume Game", msg):
+                    self.session.reset_progress() 
             
-            if not messagebox.askyesno("Resume Game", msg):
-                self.session.reset_progress() 
-        
-        elif self.session.lives <= 0:
-            self.session.config = None
+            elif self.session.lives <= 0:
+                self.session.config = None
 
-        if not self.session.config:
-            self.session.lives = 5 
-            lvl = self.session.user_data.get("level", 1)
-            diff = CustomDropdownDialog(self, "Difficulty", f"Level {lvl} Difficulty:", ["Easy", "Medium", "Hard"]).result
-            if not diff: self.logout(); return
+            if not self.session.config:
+                self.session.lives = 5 
+                lvl = self.session.user_data.get("level", 1)
+                diff = CustomDropdownDialog(self, "Difficulty", f"Level {lvl} Difficulty:", ["Easy", "Medium", "Hard"]).result
+                if not diff: self.logout(); return
+                
+                vis = CustomDropdownDialog(self, "Vision", "Choose Vision:", ["Cautious", "Keen-Eyed", "Far-Sight", "Eagle-Eye"]).result
+                if not vis: self.logout(); return
+                
+                brain = CustomDropdownDialog(self, "Brain", "Choose Brain:", ["Explorer", "Survivalist", "Smart"]).result
+                if not brain: self.logout(); return
+                
+                w = simpledialog.askinteger("Size", "Width (15-100):", minvalue=15, maxvalue=100)
+                if not w: self.logout(); return
+                h = simpledialog.askinteger("Size", "Height (15-100):", minvalue=15, maxvalue=100)
+                if not h: self.logout(); return
+                
+                self.session.set_config(diff, vis, brain, w, h)
             
-            vis = CustomDropdownDialog(self, "Vision", "Choose Vision:", ["Cautious", "Keen-Eyed", "Far-Sight", "Eagle-Eye"]).result
-            if not vis: self.logout(); return
-            
-            brain = CustomDropdownDialog(self, "Brain", "Choose Brain:", ["Explorer", "Survivalist", "Smart"]).result
-            if not brain: self.logout(); return
-            
-            w = simpledialog.askinteger("Size", "Width (15-100):", minvalue=15, maxvalue=100)
-            if not w: self.logout(); return
-            h = simpledialog.askinteger("Size", "Height (15-100):", minvalue=15, maxvalue=100)
-            if not h: self.logout(); return
-            
-            self.session.set_config(diff, vis, brain, w, h)
-        
-        self.session.start_level(increase_difficulty=level_up, reset_lives=reset_lives)
-        self.btn_next.config(state=tk.NORMAL)
-        
-        self.btn_auto.config(state=tk.NORMAL)
+            # Critical step for level generation
+            self.session.start_level(increase_difficulty=level_up, reset_lives=reset_lives)
+            self.btn_next.config(state=tk.NORMAL)
+            self.btn_auto.config(state=tk.NORMAL)
 
-        self.update_game_info()
-        self.draw_map()
-        self.update_ui()
-        self.log(f"Started Level {self.session.user_data['level']}")
+            self.update_game_info()
+            self.draw_map()
+            self.update_ui()
+            self.log(f"Started Level {self.session.user_data['level']}")
+            
+        except Exception as e:
+            traceback.print_exc() # Print full error to console
+            messagebox.showerror("Error Starting Level", f"Failed to start level: {e}")
 
     def next_turn(self):
         p = self.session.player
@@ -535,7 +523,6 @@ class MainGUI(tk.Tk):
         sq = m.get_square(p.row, p.col)
         for item in list(sq.items):
             if isinstance(item, Trader):
-                # --- AUTO-RESUME LOGIC ---
                 was_autoplaying = self.autoplay_active
                 
                 if was_autoplaying:
