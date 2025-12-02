@@ -2,6 +2,8 @@
 
 This application delivers a structured survival simulation where users navigate terrain, manage resources, and interact with traders. The system leverages modular architecture across core logic, game mechanics, and a GUI front end.
 
+![Project screenshot](./Homework3-documents/project_screenshot.png)
+
 ## CPP Fall 2025 CS3560 Group Project
 
 Team 15 Members
