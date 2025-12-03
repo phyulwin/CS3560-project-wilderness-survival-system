@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import messagebox, font, simpledialog
+from tkinter import messagebox, font, simpledialog, ttk
 import random
 import winsound
 import threading
@@ -17,13 +17,6 @@ if project_root not in sys.path:
 # --- IMPORTS ---
 from core.constants import Direction 
 from game.trader import Trader 
-
-try:
-    from ui.ui_components import CustomDropdownDialog
-    from ui.ui_login import LoginDialog, CreateAccountDialog
-except ImportError:
-    from ui_components import CustomDropdownDialog
-    from ui_login import LoginDialog, CreateAccountDialog
 
 # --- CLASS: Security Check Terminal (The Trader Window) ---
 class TraderTerminal(tk.Toplevel):
@@ -179,6 +172,9 @@ class MainGUI(tk.Tk):
         ]
 
         self.setup_layout()
+        
+        # Start at Login Screen
+        self.show_login_screen()
     
     def on_close(self):
         """Safely handle closing the window via the X button"""
@@ -193,28 +189,31 @@ class MainGUI(tk.Tk):
         main_frame = tk.Frame(self, bg="#34495e")
         main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
-        # --- CANVAS (Map) ---
-        self.canvas = tk.Canvas(main_frame, bg="#ecf0f1")
-        self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        # --- LEFT AREA CONTAINER (Holds Map OR Setup OR Login) ---
+        self.left_container = tk.Frame(main_frame, bg="#ecf0f1")
+        self.left_container.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        # The canvas is created but not packed yet
+        self.canvas = tk.Canvas(self.left_container, bg="#ecf0f1")
         self.canvas.bind("<Configure>", self.on_resize)
-        self.canvas.bind("<Motion>", self.on_mouse_hover) 
+        self.canvas.bind("<Motion>", self.on_mouse_hover)
         
         # --- SIDEBAR ---
-        sidebar = tk.Frame(main_frame, width=280, bg="#34495e") 
-        sidebar.pack_propagate(False) 
-        sidebar.pack(side=tk.RIGHT, fill=tk.Y, padx=(10, 0))
+        self.sidebar = tk.Frame(main_frame, width=280, bg="#34495e") 
+        self.sidebar.pack_propagate(False) 
+        self.sidebar.pack(side=tk.RIGHT, fill=tk.Y, padx=(10, 0))
         
         title_font = font.Font(family="Helvetica", size=11, weight="bold")
         
         # --- TILE INSPECTION ---
-        tk.Label(sidebar, text="TILE INSPECTION", font=title_font, fg="#f1c40f", bg="#34495e").pack(pady=(10, 5))
+        tk.Label(self.sidebar, text="TILE INSPECTION", font=title_font, fg="#f1c40f", bg="#34495e").pack(pady=(10, 5))
         
-        self.lbl_tile_name = tk.Label(sidebar, text="--", font=("Arial", 12, "bold"), fg="white", bg="#34495e")
+        self.lbl_tile_name = tk.Label(self.sidebar, text="--", font=("Arial", 12, "bold"), fg="white", bg="#34495e")
         self.lbl_tile_name.pack(pady=2)
         
         self.tile_bars = {}
         for res, color, max_val in [("Strength", "#e74c3c", 5), ("Water", "#3498db", 5), ("Food", "#2ecc71", 5)]:
-            f = tk.Frame(sidebar, bg="#34495e")
+            f = tk.Frame(self.sidebar, bg="#34495e")
             f.pack(fill=tk.X, pady=1, padx=5)
             lbl = tk.Label(f, text=f"{res}: -", fg="#bdc3c7", bg="#34495e", width=8, anchor="w", font=("Arial", 8))
             lbl.pack(side=tk.LEFT)
@@ -222,12 +221,12 @@ class MainGUI(tk.Tk):
             cv.pack(side=tk.LEFT, padx=5)
             self.tile_bars[res] = {"lbl": lbl, "canvas": cv, "color": color, "max": max_val}
 
-        tk.Frame(sidebar, height=2, bg="#7f8c8d").pack(fill=tk.X, pady=10, padx=10)
+        tk.Frame(self.sidebar, height=2, bg="#7f8c8d").pack(fill=tk.X, pady=10, padx=10)
         
         # --- GAME INFO ---
-        tk.Label(sidebar, text="GAME INFO", font=title_font, fg="#f1c40f", bg="#34495e").pack(pady=(5, 5))
+        tk.Label(self.sidebar, text="GAME INFO", font=title_font, fg="#f1c40f", bg="#34495e").pack(pady=(5, 5))
         self.info_vars = {}
-        info_frame = tk.Frame(sidebar, bg="#34495e")
+        info_frame = tk.Frame(self.sidebar, bg="#34495e")
         info_frame.pack(fill=tk.X, padx=5)
         for k in ["Level", "Difficulty", "Size"]:
             f = tk.Frame(info_frame, bg="#34495e")
@@ -236,10 +235,10 @@ class MainGUI(tk.Tk):
             self.info_vars[k] = tk.StringVar(value="-")
             tk.Label(f, textvariable=self.info_vars[k], fg="white", bg="#34495e", font=("Arial", 9, "bold")).pack()
 
-        tk.Frame(sidebar, height=2, bg="#7f8c8d").pack(fill=tk.X, pady=10, padx=10)
+        tk.Frame(self.sidebar, height=2, bg="#7f8c8d").pack(fill=tk.X, pady=10, padx=10)
 
         # --- PLAYER STATS (CURRENT) ---
-        tk.Label(sidebar, text="PLAYER STATS", font=title_font, fg="#f1c40f", bg="#34495e").pack(pady=(5, 5))
+        tk.Label(self.sidebar, text="PLAYER STATS", font=title_font, fg="#f1c40f", bg="#34495e").pack(pady=(5, 5))
         
         self.player_bars = {}
         p_bar_config = [
@@ -251,7 +250,7 @@ class MainGUI(tk.Tk):
         ]
         
         for key, color in p_bar_config:
-            f = tk.Frame(sidebar, bg="#34495e")
+            f = tk.Frame(self.sidebar, bg="#34495e")
             f.pack(fill=tk.X, pady=2, padx=5)
             
             header = tk.Frame(f, bg="#34495e")
@@ -266,32 +265,197 @@ class MainGUI(tk.Tk):
             self.player_bars[key] = {"var": val_var, "canvas": cv, "color": color}
 
         # --- ACTIONS ---
-        tk.Label(sidebar, text="ACTIONS", font=title_font, fg="#f1c40f", bg="#34495e").pack(pady=(20, 10))
+        tk.Label(self.sidebar, text="ACTIONS", font=title_font, fg="#f1c40f", bg="#34495e").pack(pady=(20, 10))
         
-        self.btn_next = tk.Button(sidebar, text="Next Turn", command=self.next_turn, state=tk.DISABLED, bg="#ecf0f1")
+        self.btn_next = tk.Button(self.sidebar, text="Next Turn", command=self.next_turn, state=tk.DISABLED, bg="#ecf0f1")
         self.btn_next.pack(fill=tk.X, padx=10, pady=5)
 
-        self.btn_auto = tk.Button(sidebar, text="Start Autoplay", command=self.toggle_autoplay, state=tk.DISABLED, bg="#8e44ad", fg="white")
+        self.btn_auto = tk.Button(self.sidebar, text="Start Autoplay", command=self.toggle_autoplay, state=tk.DISABLED, bg="#8e44ad", fg="white")
         self.btn_auto.pack(fill=tk.X, padx=10, pady=5)
         
         # --- Auto Trade Checkbox ---
-        chk_auto_trade = tk.Checkbutton(sidebar, text="Auto Trade (If enough Gold)", 
+        chk_auto_trade = tk.Checkbutton(self.sidebar, text="Auto Trade (If enough Gold)", 
                                         variable=self.auto_trade_enabled, 
                                         bg="#34495e", fg="#f1c40f", selectcolor="#2c3e50",
                                         activebackground="#34495e", activeforeground="#f1c40f",
                                         font=("Arial", 9, "bold"))
         chk_auto_trade.pack(fill=tk.X, padx=10, pady=5)
-        # ---------------------------
         
-        tk.Button(sidebar, text="Reset Level 1", command=self.reset_game, bg="#e74c3c", fg="white").pack(fill=tk.X, padx=10, pady=5)
+        tk.Button(self.sidebar, text="Reset Level 1", command=self.reset_game, bg="#e74c3c", fg="white").pack(fill=tk.X, padx=10, pady=5)
         
-        self.auth_frame = tk.Frame(sidebar, bg="#34495e")
+        self.auth_frame = tk.Frame(self.sidebar, bg="#34495e")
         self.auth_frame.pack(fill=tk.X, pady=10)
         self.update_auth_buttons(is_logged_in=False)
         
-        tk.Label(sidebar, text="LOG", font=title_font, fg="#f1c40f", bg="#34495e").pack(pady=(5, 2))
-        self.log_box = tk.Text(sidebar, height=10, state=tk.DISABLED, bg="#2c3e50", fg="white", font=("Courier", 8))
+        tk.Label(self.sidebar, text="LOG", font=title_font, fg="#f1c40f", bg="#34495e").pack(pady=(5, 2))
+        self.log_box = tk.Text(self.sidebar, height=10, state=tk.DISABLED, bg="#2c3e50", fg="white", font=("Courier", 8))
         self.log_box.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+    # --- SCREEN MANAGEMENT HELPERS ---
+    def clear_left_container(self):
+        """Clears whatever is currently shown in the left main area (Canvas, Setup, Login, etc)."""
+        self.canvas.pack_forget() # Hide map
+        for widget in self.left_container.winfo_children():
+            if widget != self.canvas:
+                widget.destroy()
+
+    def show_game_screen(self):
+        """Switches to the Map view."""
+        self.clear_left_container()
+        self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.btn_next.config(state=tk.NORMAL)
+        self.btn_auto.config(state=tk.NORMAL)
+
+    # --- 1. LOGIN SCREEN (Merged into Main Window) ---
+    def show_login_screen(self):
+        self.clear_left_container()
+        self.btn_next.config(state=tk.DISABLED)
+        self.btn_auto.config(state=tk.DISABLED)
+        
+        # Container for centering
+        center_box = tk.Frame(self.left_container, bg="#ecf0f1", relief="groove", bd=2)
+        center_box.place(relx=0.5, rely=0.5, anchor="center", width=500, height=450)
+        
+        tk.Label(center_box, text="SYSTEM LOGIN", font=("Arial", 24, "bold"), fg="#2c3e50", bg="#ecf0f1").pack(pady=(40, 30))
+        
+        f = tk.Frame(center_box, bg="#ecf0f1")
+        f.pack(pady=10)
+        
+        tk.Label(f, text="Username:", font=("Arial", 14), bg="#ecf0f1").grid(row=0, column=0, sticky="e", padx=10, pady=10)
+        self.ent_login_user = tk.Entry(f, font=("Arial", 14), width=20)
+        self.ent_login_user.grid(row=0, column=1, pady=10)
+        
+        tk.Label(f, text="Password:", font=("Arial", 14), bg="#ecf0f1").grid(row=1, column=0, sticky="e", padx=10, pady=10)
+        self.ent_login_pass = tk.Entry(f, font=("Arial", 14), width=20, show="*")
+        self.ent_login_pass.grid(row=1, column=1, pady=10)
+        self.ent_login_pass.bind("<Return>", lambda e: self.perform_login())
+        
+        tk.Button(center_box, text="LOGIN", bg="#2980b9", fg="white", font=("Arial", 12, "bold"), 
+                  width=15, pady=5, command=self.perform_login).pack(pady=20)
+        
+        tk.Button(center_box, text="Create New Account", bg="#ecf0f1", fg="#7f8c8d", font=("Arial", 10, "underline"), 
+                  relief="flat", command=self.show_register_screen).pack()
+
+    def perform_login(self):
+        user = self.ent_login_user.get().strip()
+        pwd = self.ent_login_pass.get().strip()
+        if not user or not pwd:
+            messagebox.showerror("Error", "Please enter username and password.")
+            return
+        
+        data, msg = self.session.account_manager.load_account(user, pwd)
+        if data:
+            self.on_login_success(user, data)
+        else:
+            messagebox.showerror("Login Failed", msg)
+
+    # --- 2. REGISTER SCREEN (Merged into Main Window) ---
+    def show_register_screen(self):
+        self.clear_left_container()
+        
+        center_box = tk.Frame(self.left_container, bg="#ecf0f1", relief="groove", bd=2)
+        center_box.place(relx=0.5, rely=0.5, anchor="center", width=500, height=450)
+        
+        tk.Label(center_box, text="CREATE ACCOUNT", font=("Arial", 24, "bold"), fg="#27ae60", bg="#ecf0f1").pack(pady=(40, 30))
+        
+        f = tk.Frame(center_box, bg="#ecf0f1")
+        f.pack(pady=10)
+        
+        tk.Label(f, text="New Username:", font=("Arial", 14), bg="#ecf0f1").grid(row=0, column=0, sticky="e", padx=10, pady=10)
+        self.ent_reg_user = tk.Entry(f, font=("Arial", 14), width=20)
+        self.ent_reg_user.grid(row=0, column=1, pady=10)
+        
+        tk.Label(f, text="New Password:", font=("Arial", 14), bg="#ecf0f1").grid(row=1, column=0, sticky="e", padx=10, pady=10)
+        self.ent_reg_pass = tk.Entry(f, font=("Arial", 14), width=20, show="*")
+        self.ent_reg_pass.grid(row=1, column=1, pady=10)
+        
+        tk.Button(center_box, text="REGISTER", bg="#27ae60", fg="white", font=("Arial", 12, "bold"), 
+                  width=15, pady=5, command=self.perform_register).pack(pady=20)
+        
+        tk.Button(center_box, text="Back to Login", bg="#ecf0f1", fg="#7f8c8d", font=("Arial", 10, "underline"), 
+                  relief="flat", command=self.show_login_screen).pack()
+
+    def perform_register(self):
+        user = self.ent_reg_user.get().strip()
+        pwd = self.ent_reg_pass.get().strip()
+        if not user or not pwd:
+            messagebox.showerror("Error", "Fields cannot be empty.")
+            return
+        
+        success, msg = self.session.account_manager.create_account(user, pwd)
+        if success:
+            messagebox.showinfo("Success", "Account created! Please login.")
+            self.show_login_screen()
+        else:
+            messagebox.showerror("Error", msg)
+
+    # --- 3. SETUP SCREEN (Merged into Main Window) ---
+    def show_setup_screen(self):
+        self.clear_left_container()
+        self.btn_next.config(state=tk.DISABLED)
+        self.btn_auto.config(state=tk.DISABLED)
+        
+        center_box = tk.Frame(self.left_container, bg="#ecf0f1", relief="groove", bd=2)
+        center_box.place(relx=0.5, rely=0.5, anchor="center", width=550, height=600)
+        
+        tk.Label(center_box, text="MISSION SETUP", font=("Arial", 26, "bold"), fg="#2c3e50", bg="#ecf0f1").pack(pady=(40, 10))
+        tk.Label(center_box, text="Configure your survival parameters", font=("Arial", 14), fg="#7f8c8d", bg="#ecf0f1").pack(pady=(0, 30))
+        
+        form_frame = tk.Frame(center_box, bg="#ecf0f1")
+        form_frame.pack(pady=10, padx=20)
+        
+        lbl_font = ("Arial", 14, "bold")
+        
+        # 1. Difficulty
+        tk.Label(form_frame, text="Difficulty:", font=lbl_font, bg="#ecf0f1").grid(row=0, column=0, sticky="w", pady=15, padx=10)
+        self.setup_diff = tk.StringVar(value="Medium")
+        ttk.Combobox(form_frame, textvariable=self.setup_diff, state="readonly", font=("Arial", 12),
+                     values=["Easy", "Medium", "Hard"], width=18).grid(row=0, column=1, sticky="e")
+
+        # 2. Vision
+        tk.Label(form_frame, text="Vision Type:", font=lbl_font, bg="#ecf0f1").grid(row=1, column=0, sticky="w", pady=15, padx=10)
+        self.setup_vis = tk.StringVar(value="Keen-Eyed")
+        ttk.Combobox(form_frame, textvariable=self.setup_vis, state="readonly", font=("Arial", 12),
+                     values=["Cautious", "Keen-Eyed", "Far-Sight", "Eagle-Eye"], width=18).grid(row=1, column=1, sticky="e")
+
+        # 3. Brain
+        tk.Label(form_frame, text="Strategy:", font=lbl_font, bg="#ecf0f1").grid(row=2, column=0, sticky="w", pady=15, padx=10)
+        self.setup_brain = tk.StringVar(value="Survivalist")
+        ttk.Combobox(form_frame, textvariable=self.setup_brain, state="readonly", font=("Arial", 12),
+                     values=["Explorer", "Survivalist", "Smart"], width=18).grid(row=2, column=1, sticky="e")
+
+        # 4. Width
+        tk.Label(form_frame, text="Map Width:", font=lbl_font, bg="#ecf0f1").grid(row=3, column=0, sticky="w", pady=15, padx=10)
+        self.setup_w = tk.Entry(form_frame, width=20, font=("Arial", 12))
+        self.setup_w.insert(0, "20")
+        self.setup_w.grid(row=3, column=1, sticky="e")
+
+        # 5. Height
+        tk.Label(form_frame, text="Map Height:", font=lbl_font, bg="#ecf0f1").grid(row=4, column=0, sticky="w", pady=15, padx=10)
+        self.setup_h = tk.Entry(form_frame, width=20, font=("Arial", 12))
+        self.setup_h.insert(0, "15")
+        self.setup_h.grid(row=4, column=1, sticky="e")
+
+        tk.Button(center_box, text="START GAME", bg="#27ae60", fg="white", font=("Arial", 14, "bold"), 
+                  width=20, pady=10, command=self.on_setup_start).pack(pady=40)
+
+    def on_setup_start(self):
+        try:
+            w = int(self.setup_w.get())
+            h = int(self.setup_h.get())
+            if not (15 <= w <= 100) or not (15 <= h <= 100):
+                messagebox.showerror("Invalid Input", "Width and Height must be between 15 and 100.")
+                return
+            
+            # Save config
+            self.session.lives = 5 
+            self.session.set_config(self.setup_diff.get(), self.setup_vis.get(), self.setup_brain.get(), w, h)
+            
+            # Start
+            self.start_game_sequence(level_up=False, reset_lives=True)
+            
+        except ValueError:
+            messagebox.showerror("Invalid Input", "Width and Height must be numbers.")
 
     def toggle_autoplay(self):
         if self.autoplay_active:
@@ -432,8 +596,9 @@ class MainGUI(tk.Tk):
         if is_logged_in:
             tk.Button(self.auth_frame, text="Logout", command=self.logout, bg="#95a5a6").pack(fill=tk.X, padx=10, pady=5)
         else:
-            tk.Button(self.auth_frame, text="Login", command=self.show_login, bg="#2ecc71").pack(fill=tk.X, padx=10, pady=5)
-            tk.Button(self.auth_frame, text="Create Account", command=self.show_create, bg="#3498db").pack(fill=tk.X, padx=10, pady=5)
+            # Buttons now simply toggle the main screen view
+            tk.Button(self.auth_frame, text="Login", command=self.show_login_screen, bg="#2ecc71").pack(fill=tk.X, padx=10, pady=5)
+            tk.Button(self.auth_frame, text="Create Account", command=self.show_register_screen, bg="#3498db").pack(fill=tk.X, padx=10, pady=5)
 
     def update_game_info(self):
         if not self.session.config: return
@@ -462,11 +627,7 @@ class MainGUI(tk.Tk):
             except Exception: pass 
         threading.Thread(target=_sound, daemon=True).start()
 
-    def show_login(self):
-        LoginDialog(self, self.session.account_manager, self.on_login_success)
-
-    def show_create(self):
-        CreateAccountDialog(self, self.session.account_manager)
+    # REMOVED OLD POPUP METHODS (show_login, show_create)
 
     def on_login_success(self, user, data):
         self.session.login(user, data)
@@ -475,46 +636,41 @@ class MainGUI(tk.Tk):
 
     def start_game_sequence(self, level_up, reset_lives=False):
         try:
+            # Check if we should load existing progress
             if self.session.config and not level_up and not reset_lives:
                 lvl = self.session.user_data.get("level", 1)
                 msg = f"Resume Level {lvl} with previous setup?"
                 if self.session.lives < 5: msg += f"\n(Lives remaining: {self.session.lives})"
                 
-                if not messagebox.askyesno("Resume Game", msg):
+                if messagebox.askyesno("Resume Game", msg):
+                    # RESUME: Show game screen immediately
+                    self.show_game_screen()
+                    self.session.start_level(increase_difficulty=False, reset_lives=False)
+                    self.update_game_info()
+                    self.draw_map()
+                    self.update_ui()
+                    return
+                else:
                     self.session.reset_progress() 
             
             elif self.session.lives <= 0:
                 self.session.config = None
 
+            # If no config (or user reset), SHOW SETUP SCREEN
             if not self.session.config:
-                self.session.lives = 5 
-                lvl = self.session.user_data.get("level", 1)
-                diff = CustomDropdownDialog(self, "Difficulty", f"Level {lvl} Difficulty:", ["Easy", "Medium", "Hard"]).result
-                if not diff: self.logout(); return
-                
-                vis = CustomDropdownDialog(self, "Vision", "Choose Vision:", ["Cautious", "Keen-Eyed", "Far-Sight", "Eagle-Eye"]).result
-                if not vis: self.logout(); return
-                
-                brain = CustomDropdownDialog(self, "Brain", "Choose Brain:", ["Explorer", "Survivalist", "Smart"]).result
-                if not brain: self.logout(); return
-                
-                w = simpledialog.askinteger("Size", "Width (15-100):", minvalue=15, maxvalue=100)
-                if not w: self.logout(); return
-                h = simpledialog.askinteger("Size", "Height (15-100):", minvalue=15, maxvalue=100)
-                if not h: self.logout(); return
-                
-                self.session.set_config(diff, vis, brain, w, h)
+                self.show_setup_screen()
+                return # Wait for user to click Start in setup screen
             
+            # If we are here, we are Leveling Up with existing config
+            self.show_game_screen()
             self.session.start_level(increase_difficulty=level_up, reset_lives=reset_lives)
-            self.btn_next.config(state=tk.NORMAL)
-            self.btn_auto.config(state=tk.NORMAL)
-
             self.update_game_info()
             self.draw_map()
             self.update_ui()
             self.log(f"Started Level {self.session.user_data['level']}")
             
         except Exception as e:
+            traceback.print_exc()
             messagebox.showerror("Error Starting Level", f"Failed to start level: {e}")
 
     def next_turn(self):
@@ -526,8 +682,12 @@ class MainGUI(tk.Tk):
         if d == Direction.STAY:
             p.rest(); self.log("Player rests.")
         else:
-            if p.move(d, m): self.log("Player moves.")
-            else: self.log("Move blocked.")
+            if p.move(d, m): 
+                self.log("Player moves.")
+            else: 
+                # FIX: Force rest if move fails, preventing infinite loops
+                p.rest() 
+                self.log("Move blocked. Resting...")
 
         sq = m.get_square(p.row, p.col)
         for item in list(sq.items):
@@ -599,7 +759,7 @@ class MainGUI(tk.Tk):
                 self.start_game_sequence(level_up=True, reset_lives=True)
             else:
                 # User declined next level. Ask to reset or logout.
-                if messagebox.askyesno("Game Paused", "Do you want to Restart at Level 1?\n(Click 'No' to Log Out)"):
+                if messagebox.askyesno("Game Paused", "Do you want to Reset to Level 1?\n(Click 'No' to Save & Logout)"):
                     self.session.reset_progress()
                     self.start_game_sequence(level_up=False, reset_lives=True)
                 else:
@@ -614,20 +774,30 @@ class MainGUI(tk.Tk):
             funny_msg = random.choice(self.funny_sentences)
             self.log("FATAL: " + funny_msg)
             
+            # --- MODIFIED LOSS LOGIC START ---
             if self.session.lives > 0:
                 title = "You Died!"
                 msg = f"{funny_msg}\n\nLives remaining: {self.session.lives}"
                 if self.session.lives == 1: title = "FINAL WARNING"
+                
+                # 1. Ask to retry current level
                 if messagebox.askyesno(title, msg + "\nRetry this level?"):
                     self.start_game_sequence(level_up=False, reset_lives=False)
                 else:
-                    self.logout()
+                    # 2. User said NO to retry. Ask to Reset or Logout.
+                    if messagebox.askyesno("Game Paused", "Do you want to Reset to Level 1?\n(Click 'No' to Save & Logout)"):
+                        self.session.reset_progress()
+                        self.start_game_sequence(level_up=False, reset_lives=True)
+                    else:
+                        self.logout()
             else:
+                # 3. Game Over (0 lives)
                 if messagebox.askyesno("GAME OVER", f"You have run out of lives.\n\n{funny_msg}\n\nDo you want to restart at Level 1?"):
                     self.session.reset_progress()
                     self.start_game_sequence(level_up=False, reset_lives=True)
                 else:
                     self.logout()
+            # --- MODIFIED LOSS LOGIC END ---
 
     def reset_game(self):
         if messagebox.askyesno("Reset", "Reset to Level 1?"):
@@ -640,6 +810,10 @@ class MainGUI(tk.Tk):
         
         self.session.logout()
         self.canvas.delete("all")
+        
+        # Reset UI to Login Screen
+        self.show_login_screen() 
+        
         self.btn_next.config(state=tk.DISABLED)
         self.log_box.config(state=tk.NORMAL)
         self.log_box.delete('1.0', tk.END)
