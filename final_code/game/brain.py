@@ -3,46 +3,55 @@ import random
 import sys
 import os
 
-# --- PATH FIX: Ensure Python can find 'core' folder ---
-# Get the directory containing this file (final_code/game/)
+# --- PATH FIX ---
 current_dir = os.path.dirname(os.path.abspath(__file__)) 
-# Get the project root (final_code/)
-project_root = os.path.dirname(current_dir) 
+parent_dir = os.path.dirname(current_dir) 
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
 
-# Add project root to sys.path so we can import 'core'
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
-
-# --- CORRECT IMPORT ---
-# Directly import from the core folder
+# --- IMPORTS ---
 from core.constants import Direction
+# We need to check item types to avoid the "Trader Loop"
+from game.items import FoodBonus, WaterBonus, GoldBonus
 
-# Abstract base class for decision-making brains.
+# Abstract base class
 class Brain(abc.ABC):
-    """
-    Decide and return the next move for the player.
-    """
     @abc.abstractmethod
     def make_move(self, player, vision, game_map): pass
     
-    # --- Logic to prevent death by exhaustion ---
+    # 1. Prevent death by exhaustion
     def check_fatigue(self, player):
-        # If strength is critically low (less than 5), FORCE a rest.
         if player.current_strength < 5:
             return True
         return False
 
-# Simple brain that prefers moving east, otherwise random available direction.
+    # 2. Look for items in immediate neighbors
+    def check_nearby_items(self, p, m):
+        dirs = Direction.ALL[:4]
+        random.shuffle(dirs)
+        
+        for d in dirs:
+            nr, nc = p.row + d[0], p.col + d[1]
+            sq = m.get_square(nr, nc)
+            
+            # FIX: Only move for Bonuses (Food/Water/Gold), NOT Traders.
+            # Moving for Traders causes infinite loops (Step On -> Step Off -> See Trader -> Step On)
+            if sq and p.can_move(d, m):
+                for item in sq.items:
+                    if isinstance(item, (FoodBonus, WaterBonus, GoldBonus)):
+                        return d
+        return None
+
+# Simple brain
 class ExplorerBrain(Brain):
     def make_move(self, p, v, m):
-        # 1. REST if tired
-        if self.check_fatigue(p):
-            return Direction.STAY
-            
-        # 2. Try East
+        if self.check_fatigue(p): return Direction.STAY
+        
+        loot_dir = self.check_nearby_items(p, m)
+        if loot_dir: return loot_dir
+
         if p.can_move(Direction.EAST, m): return Direction.EAST
         
-        # 3. Random valid move
         dirs = Direction.ALL[:]
         random.shuffle(dirs)
         for d in dirs:
@@ -50,47 +59,54 @@ class ExplorerBrain(Brain):
             
         return Direction.STAY
 
-# Prioritizes getting water and food when low, otherwise explores.
+# Survivalist
 class SurvivalistBrain(Brain):
     def make_move(self, p, v, m):
-        # 1. REST if tired
-        if self.check_fatigue(p):
-            return Direction.STAY
+        if self.check_fatigue(p): return Direction.STAY
 
-        # 2. Seek Water if low
-        if p.current_water < p.max_water / 2:
+        loot_dir = self.check_nearby_items(p, m)
+        if loot_dir: return loot_dir
+
+        if p.current_water < p.max_water * 0.8:
             path = v.closestWater(m, p)
-            if path and path.moves: return path.moves[0]
+            if path and path.moves:
+                move = path.moves[0]
+                if p.can_move(move, m): return move
+                else: return Direction.STAY 
         
-        # 3. Seek Food if low
-        if p.current_food < p.max_food / 2:
+        if p.current_food < p.max_food * 0.8:
             path = v.closestFood(m, p)
-            if path and path.moves: return path.moves[0]
+            if path and path.moves:
+                move = path.moves[0]
+                if p.can_move(move, m): return move
+                else: return Direction.STAY 
             
-        # 4. Explore
         return ExplorerBrain().make_move(p, v, m)
 
-# More cautious brain that seeks food/water at higher thresholds.
+# Smart
 class SmartBrain(Brain):
     def make_move(self, p, v, m):
-        # 1. REST if tired
-        if self.check_fatigue(p):
-            return Direction.STAY
+        if self.check_fatigue(p): return Direction.STAY
 
-        # 2. Seek Food (High priority)
-        if p.current_food < p.max_food * .4:
+        loot_dir = self.check_nearby_items(p, m)
+        if loot_dir: return loot_dir
+
+        if p.current_food < p.max_food * 0.6:
             path = v.closestFood(m, p)
-            if path and path.moves: return path.moves[0]
+            if path and path.moves:
+                move = path.moves[0]
+                if p.can_move(move, m): return move
+                else: return Direction.STAY 
             
-        # 3. Seek Water (High priority)
-        if p.current_water < p.max_water * .4:
+        if p.current_water < p.max_water * 0.6:
             path = v.closestWater(m, p)
-            if path and path.moves: return path.moves[0]
+            if path and path.moves:
+                move = path.moves[0]
+                if p.can_move(move, m): return move
+                else: return Direction.STAY 
             
-        # 4. Explore East
         if p.can_move(Direction.EAST, m): return Direction.EAST
         
-        # 5. Random fallback
         dirs = Direction.ALL[:]
         random.shuffle(dirs)
         for d in dirs:
