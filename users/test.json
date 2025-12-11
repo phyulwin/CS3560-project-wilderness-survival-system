@@ -2,12 +2,12 @@
     "username": "test",
     "password": "test",
     "level": 1,
-    "saved_lives": 5,
+    "saved_lives": 4,
     "saved_config": {
-        "difficulty": "Easy",
-        "vis_name": "Far-Sight",
+        "difficulty": "Medium",
+        "vis_name": "Keen-Eyed",
         "brain_name": "Survivalist",
-        "w": 60,
-        "h": 45
+        "w": 21,
+        "h": 16
     }
 }
